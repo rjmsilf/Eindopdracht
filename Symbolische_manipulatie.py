@@ -25,7 +25,7 @@ def tokenize(string):
         else:
             ans.append(t)
     return ans
-# dit is toegevoegd    
+   
 # check if a string represents a numeric value
 def isnumber(string):
     try:
