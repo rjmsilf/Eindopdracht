@@ -115,10 +115,14 @@ class Expression():
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
+            print('for loop'+ str(stack))
+            
+            print('for loop' + str(output))
             
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
+            print('while loop' + str(output))
         
         # convert RPN to an actual expression tree
         for t in output:
@@ -131,8 +135,12 @@ class Expression():
                 # a constant, push it to the stack
                 stack.append(t)
         # the resulting expression tree is what's left on the stack
+        
+        print('einde' + str(stack))
+        print('einde' + str(output))
+        
         return stack[0]
-    
+        
 class Constant(Expression):
     """Represents a constant value"""
     def __init__(self, value):
