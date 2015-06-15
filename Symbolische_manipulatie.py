@@ -120,11 +120,11 @@ class Expression():
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
-                
+     
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
-            
+
         # convert RPN to an actual expression tree
         oplist = list(oplist)
         for t in output:
@@ -138,7 +138,7 @@ class Expression():
                 stack.append(t)
         # the resulting expression tree is what's left on the stack
         return stack[0]
-    
+
 class Constant(Expression):
     """Represents a constant value"""
     def __init__(self, value):
@@ -215,6 +215,5 @@ class PowNode(BinaryNode):
     """Represents the power operator"""
     def __init__(self, lhs, rhs):
         super(PowNode, self).__init__(lhs, rhs, '**')
-# TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-    
+# TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
