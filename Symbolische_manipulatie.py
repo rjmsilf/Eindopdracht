@@ -41,6 +41,14 @@ def isint(string):
         return True
     except ValueError:
         return False
+        
+# check if a string represents a variable
+def isvariable(string):
+    try:
+        type(string) is str
+        return True
+    except TypeError:
+        return False
 
 class Expression():
     """A mathematical expression, represented as an expression tree"""
@@ -121,6 +129,8 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
+            elif isvariable(token):
+                output.append(Variable(str(token)))
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
