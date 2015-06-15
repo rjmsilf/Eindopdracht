@@ -91,17 +91,17 @@ def fromString(string):
             if isint(token):
                 output.append(Constant(int(token)))
             else:
-<<<<<<< HEAD
+
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
-            print('for loop'+ str(stack))
+            #print('for loop'+ str(stack))
             
-            print('for loop' + str(output))
+            #print('for loop' + str(output))
             
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
-            print('while loop' + str(output))
+            #print('while loop' + str(output))
         
         # convert RPN to an actual expression tree
         for t in output:
@@ -115,14 +115,14 @@ def fromString(string):
                 stack.append(t)
         # the resulting expression tree is what's left on the stack
         
-        print('einde' + str(stack))
-        print('einde' + str(output))
+        #print('einde' + str(stack))
+        #print('einde' + str(output))
         
         return stack[0]
         
-=======
-                output.append(Constant(float(token)))
-        elif token in oplist:
+        output.append(Constant(float(token)))
+        
+        if token in oplist:
             # pop operators from the stack to the output until the top is no longer an operator
             while True:
                 # TODO: when there are more operators, the rules are more complicated
@@ -164,7 +164,7 @@ def fromString(string):
     # the resulting expression tree is what's left on the stack
     return stack[0]
     
->>>>>>> d43a028ca7817956f90371f14baf93df51f27578
+
 class Constant(Expression):
     """Represents a constant value"""
     def __init__(self, value):
@@ -242,3 +242,6 @@ class PowNode(BinaryNode):
     def __init__(self, lhs, rhs):
         super(PowNode, self).__init__(lhs, rhs, '**')
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc. hallo
+
+#def evaluate(self,):
+    
