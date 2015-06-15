@@ -70,11 +70,15 @@ class Expression():
         return PowNode(self, other)
         
     # TODO: other overloads, such as __sub__, __mul__, etc.
-    def evaluate(self,dictionary):
+    def evaluate(self,dictionary=None):
         # the second object represents the dictionary which we will give by ourself (looks for example like {'x':2, 'y':3})
         # the eval class in python uses this automatically (definition)
-        answer = eval(str(self), dictionary)
-        return answer
+        if dictionary==None:
+            answer = eval(str(self))
+            return answer
+        else:
+            answer=eval(str(self),dictionary)
+            return answer
         
     # basic Shunting-yard algorithm
     def fromString(string):
