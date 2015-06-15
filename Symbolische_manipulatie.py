@@ -70,7 +70,12 @@ class Expression():
         return PowNode(self, other)
         
     # TODO: other overloads, such as __sub__, __mul__, etc.
-    
+    def evaluate(self,dictionary):
+        # the second object represents the dictionary which we will give by ourself (looks for example like {'x':2, 'y':3})
+        # the eval class in python uses this automatically (definition)
+        answer = eval(str(self), dictionary)
+        return answer
+        
     # basic Shunting-yard algorithm
     def fromString(string):
         # split into tokens
@@ -83,7 +88,7 @@ class Expression():
         output = []
         
         # list of operators
-        oplist = ['+']
+        oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
         
         for token in tokens:
             if isnumber(token):
@@ -97,14 +102,14 @@ class Expression():
                 while True:
                     # TODO: when there are more operators, the rules are more complicated
                     # look up the shunting yard-algorithm
-                    if len(stack) == 0 or stack[-1] not in oplist:
+                    if len(stack) == 0 or stack[-1] not in oplist or oplist[token] == 4 or oplist[token] > oplist[stack[-1]]:
                         break
                     output.append(stack.pop())
                 # push the new operator onto the stack
                 stack.append(token)
             elif token == '(':
                 # left parantheses go to the stack
-                stack.append(token)
+                    stack.append(token)
             elif token == ')':
                 # right paranthesis: pop everything upto the last left paranthesis to the output
                 while not stack[-1] == '(':
@@ -115,12 +120,13 @@ class Expression():
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
-            
+                
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
-        
+            
         # convert RPN to an actual expression tree
+        oplist = list(oplist)
         for t in output:
             if t in oplist:
                 # let eval and operator overloading take care of figuring out what to do
@@ -209,10 +215,6 @@ class PowNode(BinaryNode):
     """Represents the power operator"""
     def __init__(self, lhs, rhs):
         super(PowNode, self).__init__(lhs, rhs, '**')
-# TODO: add more subclasses of Expression to represent operators, variables, functions, etc. hallo
-<<<<<<< HEAD
-# Halloooooooo
-=======
+# TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-#HALLO
->>>>>>> 18cdc4d441e10e8db3bbf24b0c5313bd69db6212
+    
