@@ -243,3 +243,5 @@ class PowNode(BinaryNode):
     def __init__(self, lhs, rhs):
         super(PowNode, self).__init__(lhs, rhs, '**')
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
+
+#HAAAALOOO =)
