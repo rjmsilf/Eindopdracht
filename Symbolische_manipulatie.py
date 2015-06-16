@@ -98,7 +98,7 @@ class Expression():
         # this will contain Constant's and '+'s
         output = []
         
-        # list of operators
+        # list of operators incl their operator value
         oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
         
         for token in tokens:
@@ -113,6 +113,7 @@ class Expression():
                 while True:
                     # TODO: when there are more operators, the rules are more complicated
                     # look up the shunting yard-algorithm
+                    #ADDED: also stop output.append(stack.pop() when operator value of stack[-1] is smaller then operator value of token, or when token=='**' (because of right associativity)
                     if len(stack) == 0 or stack[-1] not in oplist or oplist[token] == 4 or oplist[token] > oplist[stack[-1]]:
                         break
                     output.append(stack.pop())
@@ -128,6 +129,7 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
+            #ADDED: if token is a small letter-->make it a Variable 
             elif isvariable(token):
                 output.append(Variable(str(token)))
             else:
@@ -189,7 +191,7 @@ class BinaryNode(Expression):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
-    
+    #ADDED: list of operators incl their operator value
     oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
 
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
@@ -205,6 +207,7 @@ class BinaryNode(Expression):
         rstring = str(self.rhs)
         
         if isinstance(self.lhs,BinaryNode):
+            #ADDED: als 
             if isinstance(self.rhs,BinaryNode):
                 if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol] and (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
                     return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
@@ -247,4 +250,3 @@ class PowNode(BinaryNode):
         super(PowNode, self).__init__(lhs, rhs, '**')
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-#HAAAALOOO =)
