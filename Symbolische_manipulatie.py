@@ -204,17 +204,20 @@ class BinaryNode(Expression):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
         
-        # TODO: do we always need parantheses?
-        #if isinstance(self.lhs,Variable) and isinstance(self.rhs,Constant) and self.op_symbol=='*':
-        #    return '%s%s' %(rstring,lstring)
-        #elif isinstance(self.rhs,Variable) and isinstance(self.lhs,Constant) and self.op_symbol=='*':
-        #    return '%s%s' %(lstring,rstring)
-        #elif isinstance(self.lhs,Variable) and isinstance(self.rhs,Variable) and self.op_symbol=='*':
-        #    return '%s%s' %(rstring,lstring)
-        if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
-            return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
+        if isinstance(self.lhs,BinaryNode):
+            if isinstance(self.rhs,BinaryNode):
+                if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol] and (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
+                    return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
+                else:
+                    return "%s %s %s" % (lstring, self.op_symbol, rstring)
+            if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+                return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
+            else:
+                return "%s %s %s" % (lstring, self.op_symbol, rstring)
+        #if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+        #    return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
-                return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
+            return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         else:
             return "%s %s %s" % (lstring, self.op_symbol, rstring)
         
