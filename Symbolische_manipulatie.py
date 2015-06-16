@@ -44,10 +44,9 @@ def isint(string):
         
 # check if a string represents a variable
 def isvariable(string):
-    try:
-        type(string) is str
+    if ord(string)>=97 and ord(string)<=122:
         return True
-    except TypeError:
+    else:
         return False
 
 class Expression():
@@ -185,11 +184,14 @@ class Variable(Expression):
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
     
+    
     def __init__(self, lhs, rhs, op_symbol):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
     
+    oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
+
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
             
     def __eq__(self, other):
@@ -203,7 +205,18 @@ class BinaryNode(Expression):
         rstring = str(self.rhs)
         
         # TODO: do we always need parantheses?
-        return "(%s %s %s)" % (lstring, self.op_symbol, rstring)
+        #if isinstance(self.lhs,Variable) and isinstance(self.rhs,Constant) and self.op_symbol=='*':
+        #    return '%s%s' %(rstring,lstring)
+        #elif isinstance(self.rhs,Variable) and isinstance(self.lhs,Constant) and self.op_symbol=='*':
+        #    return '%s%s' %(lstring,rstring)
+        #elif isinstance(self.lhs,Variable) and isinstance(self.rhs,Variable) and self.op_symbol=='*':
+        #    return '%s%s' %(rstring,lstring)
+        if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+            return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
+        elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
+                return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
+        else:
+            return "%s %s %s" % (lstring, self.op_symbol, rstring)
         
 class AddNode(BinaryNode):
     """Represents the addition operator"""
