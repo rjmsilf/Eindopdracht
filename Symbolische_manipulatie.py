@@ -98,7 +98,7 @@ class Expression():
         # this will contain Constant's and '+'s
         output = []
         
-        # list of operators
+        # list of operators incl their operator value
         oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
         
         for token in tokens:
@@ -113,6 +113,7 @@ class Expression():
                 while True:
                     # TODO: when there are more operators, the rules are more complicated
                     # look up the shunting yard-algorithm
+                    # ADDED: also stop output.append(stack.pop() when operator value of stack[-1] is smaller then operator value of token, or when token=='**' (because of right associativity)
                     if len(stack) == 0 or stack[-1] not in oplist or oplist[token] == 4 or oplist[token] > oplist[stack[-1]]:
                         break
                     output.append(stack.pop())
@@ -128,6 +129,7 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
+            #ADDED: if token is a small letter-->make it a Variable 
             elif isvariable(token):
                 output.append(Variable(str(token)))
             else:
@@ -183,13 +185,12 @@ class Variable(Expression):
         
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
-    
-    
+
     def __init__(self, lhs, rhs, op_symbol):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
-    
+    #ADDED: list of operators incl their operator value
     oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
 
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
@@ -204,20 +205,37 @@ class BinaryNode(Expression):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
         
+        # ADDED: check whether the type of the lhs node is a BinaryNode
         if isinstance(self.lhs,BinaryNode):
+            # ADDED: check whether the type of the rhs node is a BinaryNode
             if isinstance(self.rhs,BinaryNode):
+                # ADDED: if so, check whether the operator value of current BinaryNode is greater than the operator value of the lhs node
+                # and check whether (the operator value of current BinaryNode is greater than the operator value of the rhs node 
+                # or the operator value of the current BinaryNode is equal to the operator value of the rhs node is equal to 4(power operation)) 
+                # Notice: we check the last condition only for the rhs, because the power operator is right associative.
                 if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol] and (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
+                    # ADDED: if so, then we want to return an output with parenthesis only around the lhs and rhs node 
                     return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
+                # ADDED: if not, return the general case    
                 else:
                     return "%s %s %s" % (lstring, self.op_symbol, rstring)
+            # ADDED: if the type of the rhs node isn't a BinaryNode, check if the operator value of the current BinaryNode is greater than the operator value of the lhs node 
             if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+                # ADDED: if so, then we want to return an output with parenthesis only around the lhs node
                 return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
+            # ADDED: if not, return the general case
             else:
                  return "%s %s %s" % (lstring, self.op_symbol, rstring)  
         #if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
         #    return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
+        # ADDED: if the type of the lhs node isn't a BinaryNode, check if the type of the rhs is a BinaryNode 
+        # and check whether (the operator value of current BinaryNode is greater than the operator value of the rhs node 
+        # or the operator value of the current BinaryNode is equal to the operator value of the rhs node is equal to 4(power operation)) 
+        # Notice: we check the last condition only for the rhs, because the power operator is right associative.
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
+            # ADDED: if so, then we want to return an output with parenthesis only around the rhs node
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
+        # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
              a = "%s %s %s" % (lstring, self.op_symbol, rstring)
              return partial_evaluation(a)
@@ -248,13 +266,16 @@ class PowNode(BinaryNode):
         super(PowNode, self).__init__(lhs, rhs, '**')
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-#HAAAALOOO =)
-
+# ADDED: evaluate a part of the string
 def partial_evaluation(a):
+    # ADDED: try whether there is something in the string that could be evaluated
     try:
         b = eval(a)
         return str(b)
+    # ADDED: if not, then return a if there is a TypeError
     except TypeError: 
         return a
+    # ADDED: if not, then return a if there is a NameError
     except NameError: 
         return a
+
