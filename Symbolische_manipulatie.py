@@ -213,14 +213,15 @@ class BinaryNode(Expression):
             if BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
                 return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
             else:
-                return "%s %s %s" % (lstring, self.op_symbol, rstring)
+                 return "%s %s %s" % (lstring, self.op_symbol, rstring)  
         #if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
         #    return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or BinaryNode.oplist[self.op_symbol]==BinaryNode.oplist[self.rhs.op_symbol]==4):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         else:
-            return "%s %s %s" % (lstring, self.op_symbol, rstring)
-        
+             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+             return partial_evaluation(a)
+
 class AddNode(BinaryNode):
     """Represents the addition operator"""
     def __init__(self, lhs, rhs):
@@ -248,3 +249,12 @@ class PowNode(BinaryNode):
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
 #HAAAALOOO =)
+
+def partial_evaluation(a):
+    try:
+        b = eval(a)
+        return str(b)
+    except TypeError: 
+        return a
+    except NameError: 
+        return a
