@@ -65,8 +65,6 @@ def isvariable(string):
         except TypeError:
             return False
 
-#def isvariable(string):
- #   if ord(string)
 
 class Expression():
     """A mathematical expression, represented as an expression tree"""
@@ -148,9 +146,13 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
-            #ADDED: if token is Variable --> send it to output
-            elif isinstance(token,Variable):
+            #ADDED: if token is Variable or a Constant --> send it to output
+            elif isinstance(token,Variable) or isinstance(token,Constant):
                 output.append(token)
+            #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
+            ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
+            elif ord(token)>=97 and ord(token)<=122:
+                output.append(Variable(str(token)))
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
@@ -244,8 +246,8 @@ class BinaryNode(Expression):
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
              a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-             return a
-             #return partial_evaluation(a)
+             #return a
+             return partial_evaluation(a)
 
 class AddNode(BinaryNode):
     """Represents the addition operator"""
