@@ -18,10 +18,15 @@ def tokenize(string):
     tokens = tokenstring.split()
     
     #special casing for **:
+    #ADDED: special casting for '-' as a negative ###(TODO: how to evaluate -Constant and -Var etc)###
     ans = []
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
+        elif len(ans)==1 and ans[0]=='-':
+            ans[0]='-'+t
+        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+            ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -41,13 +46,27 @@ def isint(string):
         return True
     except ValueError:
         return False
-        
-# check if a string represents a variable
-def isvariable(string):
-    if ord(string)>=97 and ord(string)<=122:
-        return True
+###TODO: How to import made variables and constants in the __main__ document?
+def isconstant(string):
+    if ord(str(string))>=97 and ord(str(string))<=122:
+        A=isnumber(eval('string'))
+        return A
     else:
         return False
+            
+def isvariable(string):
+    if ord(string)>=97 and ord(string)<=122:
+        try:
+            a=eval('string')
+            if isnumber(a)==True:
+                return False
+            elif isnumber(a)==False:
+                return True
+        except TypeError:
+            return False
+
+#def isvariable(string):
+ #   if ord(string)
 
 class Expression():
     """A mathematical expression, represented as an expression tree"""
@@ -129,9 +148,9 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
-            #ADDED: if token is a small letter-->make it a Variable 
-            elif isvariable(token):
-                output.append(Variable(str(token)))
+            #ADDED: if token is Variable --> send it to output
+            elif isinstance(token,Variable):
+                output.append(token)
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
@@ -182,6 +201,7 @@ class Variable(Expression):
         
     def __str__(self):
         return str(self.value)
+        
         
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
@@ -254,11 +274,32 @@ class PowNode(BinaryNode):
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
 # ADDED: evaluate a part of the string
+def deler(x,y):
+    antwoord=y%x
+    return antwoord
+
+def ggd(x,y):
+    if y<x:
+        return ggd(y,x)
+    elif x == y:
+        return x
+    elif x == 0 and y == 0:
+        return 0
+    elif x == 0:
+        return y
+    elif y == 0:
+        return x
+    else:
+        return ggd(x,deler(x,y))
+
 def partial_evaluation(a):
     # ADDED: try whether there is something in the string that could be evaluated
     try:
         b = eval(a)
-        return str(b)
+        if isinstance(b,float):
+            return a
+        else:
+            return str(b)
     # ADDED: if not, then return a if there is a TypeError
     except TypeError: 
         return a

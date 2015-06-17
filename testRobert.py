@@ -1,11 +1,23 @@
 from Symbolische_manipulatie import *
 
-print(isvariable('%'))
-print(Expression.fromString('3*x+4*2/(1-5)**2**3'))
-x=Constant(2)
-y=Constant(5)
-u=Constant(3)
+print(Expression.fromString('(3*2+4)*2/(1-5)**2**3'))
+a=Constant(2)
+b=Constant(5)
+c=Constant(3)
 z=Variable('z')
-print(Expression.fromString('(z+3)*(2**3+3)**2'))
+#antwoord=Expression.fromString('a+b')
 
 
+
+
+#print(isnumber(eval('a')))
+#print(eval('d'))
+#print(isnumber(eval('a')))
+#print(isvariable('a'))
+#print(isnumber('x'))
+#print(isnumber(eval('a')))
+#print(eval('d'))
+
+
+
+#print(isconstant('a'))
