@@ -243,11 +243,29 @@ class BinaryNode(Expression):
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or str(self.op_symbol)==str(self.rhs.op_symbol)=='**'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
+        #ADDED: Simplify trivial expressions, here 'x+0'='x', 'x*0'='0' and 'x*1'='1'
+        elif isinstance(self,MulNode):
+            if self.lhs==Constant('0') or self.rhs==Constant('0'):
+                return Constant('0')
+            if self.rhs==Constant('1'):
+                return lstring
+            if self.lhs == Constant('1'):
+                return rstring
+        elif isinstance(self, AddNode):
+            if self.lhs==Constant(0):
+                return rstring
+            if self.rhs==Constant(0):
+                return lstring
+        
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
              a = "%s %s %s" % (lstring, self.op_symbol, rstring)
              #return a
              return partial_evaluation(a)
+        
+        
+            
+                
 
 class AddNode(BinaryNode):
     """Represents the addition operator"""
