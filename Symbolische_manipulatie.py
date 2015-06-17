@@ -243,19 +243,44 @@ class BinaryNode(Expression):
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or str(self.op_symbol)==str(self.rhs.op_symbol)=='**'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
-        #ADDED: Simplify trivial expressions, here 'x+0'='x', 'x*0'='0' and 'x*1'='1'
+        #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
         elif isinstance(self,MulNode):
-            if self.lhs==Constant('0') or self.rhs==Constant('0'):
-                return Constant('0')
-            if self.rhs==Constant('1'):
+            # 'x*0'='0' and '0*x'='0'
+            if self.lhs==Constant(0) or self.rhs==Constant('0'):
+                return Constant(0)
+            # 'x*1'='x'
+            if self.rhs==Constant(1):
                 return lstring
-            if self.lhs == Constant('1'):
+            # '1*x'='x'
+            if self.lhs == Constant(1):
                 return rstring
+            # 'x*x'='x**2'
+            if self.lhs==self.rhs:
+                return 'self.lhs**2'
+            # '(x**n)*(x**m)'='x**(n+m)'
+            if isinstance(self.lhs,PowNode) and isinstance(self.rhs, PowNode) and self.lhs.lhs==self.rhs.lhs:
+                return 'self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)'
+                
         elif isinstance(self, AddNode):
+            # '0+x'='x'
             if self.lhs==Constant(0):
                 return rstring
+            # 'x+0'='x'
             if self.rhs==Constant(0):
                 return lstring
+                
+        elif isinstance(self, DivNode):
+            # 'x/1'='x'
+            if self.rhs==Constant(1):
+                return 
+            
+        elif isinstance(self, PowNode):
+            # 'x**1'='x'
+            if self.rhs==Constant(1):
+                return lstring
+            
+        
+        
         
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
