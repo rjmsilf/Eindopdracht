@@ -6,6 +6,6 @@ x=Constant(2)
 y=Constant(5)
 u=Constant(3)
 z=Variable('z')
-print(Expression.fromString('(x+3)*(z+7)'))
+print(Expression.fromString('(z+3)*(2**3+3)**2'))
 
 
