@@ -23,10 +23,10 @@ def tokenize(string):
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
-        elif len(ans)==1 and ans[0]=='-':
-            ans[0]='-'+t
-        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
-            ans[-1]='-'+t
+        #elif len(ans)==1 and ans[0]=='-':
+        #    ans[0]='-'+t
+        #elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+        #    ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -92,6 +92,9 @@ class Expression():
         
     def __pow__(self, other):
         return PowNode(self, other)
+    
+    def __neg__(self):
+        return NegNode(self)
         
     # TODO: other overloads, such as __sub__, __mul__, etc.
     def evaluate(self,dictionary=None):
@@ -122,9 +125,16 @@ class Expression():
             if isnumber(token):
                 # numbers go directly to the output
                 if isint(token):
-                    output.append(Constant(int(token)))
+                    if stack[-1] == '-' and (stack[-2] in ['+', '/', '*', '-', '**', '(']):
+                        output.append(NegNode(int(token)))
+                    else:
+                        output.append(Constant(int(token)))
                 else:
-                    output.append(Constant(float(token)))
+                    if stack[-1] == '-' and (stack[-2] in ['+', '/', '*', '-', '**', '(']):
+                        output.append(NegNode(float(token)))
+                    else:
+                        output.append(Constant(float(token)))
+            
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
@@ -177,9 +187,13 @@ class Expression():
 
 class Constant(Expression):
     """Represents a constant value"""
-    def __init__(self, value):
+    def __init__(self, value, precedence = 6):
         self.value = value
-        
+        if self.value < 0 : 
+            self.precedence = 3
+        else: 
+            self.precedence = 6
+            
     def __eq__(self, other):
         if isinstance(other, Constant):
             return self.value == other.value
@@ -208,12 +222,13 @@ class Variable(Expression):
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
 
-    def __init__(self, lhs, rhs, op_symbol):
+    def __init__(self, lhs, rhs, op_symbol, precedence, associativity):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
+        self.precedence = precedence
+        self.associativity = associativity
     #ADDED: list of operators incl their operator value
-    oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
 
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
             
@@ -226,23 +241,25 @@ class BinaryNode(Expression):
     def __str__(self):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
-        
+        print(self.precedence)
+        print(self.lhs.precedence)
         # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
-        if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+        if self.precedence > self.lhs.precedence:
             # ADDED: check whether the type of the rhs node is a BinaryNode and if parenthesis are needed around rhs node, by checking if one of the following is true:
-                #the operator value of current BinaryNode is greater than the operator value of the rhs node, or 
-                #the value of the current BinaryNode AND of the rhs node are equal to '**', (ergo power operation value of 4 and right associative) 
+            #the operator value of current BinaryNode is greater than the operator value of the rhs node, or 
+            #the value of the current BinaryNode AND of the rhs node are equal to '**', (ergo power operation value of 4 and right associative) 
             # Notice: we check the last condition only for the rhs, because the power operator is right associative.
-            if isinstance(self.rhs,BinaryNode) and (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or str(self.op_symbol)==str(self.rhs.op_symbol)=='**'):
+            if self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
                 return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
             # ADDED: if not, add only parenthesis to the lhs    
             else:
                 return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
     
         # ADDED: if not, check whether the type of the rhs node is a BinaryNode and if parenthesis are necessary for the rhs node (checking procedure equal to the above one)
-        elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or str(self.op_symbol)==str(self.rhs.op_symbol)=='**'):
+        elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
+                
         #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
         elif isinstance(self,MulNode):
             # 'x*0'='0' and '0*x'='0'
@@ -262,8 +279,8 @@ class BinaryNode(Expression):
                 return 'self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)'
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                #return a
-                return partial_evaluation(a)    
+                return a
+                #return partial_evaluation(a)    
                 
         elif isinstance(self, AddNode):
             # '0+x'='x'
@@ -274,8 +291,8 @@ class BinaryNode(Expression):
                 return lstring
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                #return a
-                return partial_evaluation(a)
+                return a
+                #return partial_evaluation(a)
                 
         elif isinstance(self, DivNode):
             # 'x/1'='x'
@@ -283,49 +300,68 @@ class BinaryNode(Expression):
                 return lstring
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                #return a
-                return partial_evaluation(a)
+                return a
+                #return partial_evaluation(a)
                 
-        elif isinstance(self, PowNode):
+        #elif isinstance(self, PowNode):
             # 'x**1'='x'
-            if self.rhs==Constant(1):
-                return lstring
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                #return a
-                return partial_evaluation(a)
+        #    if self.rhs==Constant(1):
+        #        return lstring
+        #    else:
+        #        a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+        #        return a
+                #return partial_evaluation(a)
         
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
-             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-             #return a
-             return partial_evaluation(a)
+            a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+            return a
+            #return partial_evaluation(a)
         
-
+class UnaryNode(Expression):
+    """A node in the expression tree representing a unary operator."""
+    def __init__(self, operand, op_symbol, precedence):
+        self.operand = operand
+        self.op_symbol = op_symbol
+        self.precedence = precedence
+        print(self.precedence)
+    
+    def __str__(self):
+        return self.op_symbol+str(self.operand)
+ 
+    
 class AddNode(BinaryNode):
     """Represents the addition operator"""
     def __init__(self, lhs, rhs):
-        super(AddNode, self).__init__(lhs, rhs, '+')
+        super(AddNode, self).__init__(lhs, rhs, '+', 1, 'both')
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
     def __init__(self, lhs, rhs):
-        super(SubNode, self).__init__(lhs, rhs, '-')
+        super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left')
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
     def __init__(self, lhs, rhs):
-        super(MulNode, self).__init__(lhs, rhs, '*')
+        super(MulNode, self).__init__(lhs, rhs, '*', 2, 'both')
         
 class DivNode(BinaryNode):
     """Represents the division operator"""
     def __init__(self, lhs, rhs):
-        super(DivNode, self).__init__(lhs, rhs, '/')
+        super(DivNode, self).__init__(lhs, rhs, '/', 2, 'left')
 
 class PowNode(BinaryNode):
     """Represents the power operator"""
     def __init__(self, lhs, rhs):
-        super(PowNode, self).__init__(lhs, rhs, '**')
+        super(PowNode, self).__init__(lhs, rhs, '**', 4, 'right')
+
+class NegNode(UnaryNode):
+    """Represents the negation operator"""
+    def __init__(self, operand):
+        super(NegNode, self).__init__(operand, '-', 3)
+
+
+
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
 # ADDED: evaluate a part of the string
