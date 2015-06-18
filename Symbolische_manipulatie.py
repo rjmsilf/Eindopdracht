@@ -278,7 +278,6 @@ class BinaryNode(Expression):
                 return partial_evaluation(a)
                 
         elif isinstance(self, DivNode):
-            print('hoi')
             # 'x/1'='x'
             if self.rhs==Constant(1):
                 return lstring
