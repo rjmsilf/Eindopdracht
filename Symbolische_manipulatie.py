@@ -260,6 +260,10 @@ class BinaryNode(Expression):
             # '(x**n)*(x**m)'='x**(n+m)'
             if isinstance(self.lhs,PowNode) and isinstance(self.rhs, PowNode) and self.lhs.lhs==self.rhs.lhs:
                 return 'self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)'
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                #return a
+                return partial_evaluation(a)    
                 
         elif isinstance(self, AddNode):
             # '0+x'='x'
@@ -268,19 +272,29 @@ class BinaryNode(Expression):
             # 'x+0'='x'
             if self.rhs==Constant(0):
                 return lstring
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                #return a
+                return partial_evaluation(a)
                 
         elif isinstance(self, DivNode):
+            print('hoi')
             # 'x/1'='x'
             if self.rhs==Constant(1):
-                return 
-            
+                return lstring
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                #return a
+                return partial_evaluation(a)
+                
         elif isinstance(self, PowNode):
             # 'x**1'='x'
             if self.rhs==Constant(1):
                 return lstring
-            
-        
-        
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                #return a
+                return partial_evaluation(a)
         
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
@@ -288,9 +302,6 @@ class BinaryNode(Expression):
              #return a
              return partial_evaluation(a)
         
-        
-            
-                
 
 class AddNode(BinaryNode):
     """Represents the addition operator"""
