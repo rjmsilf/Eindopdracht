@@ -23,10 +23,10 @@ def tokenize(string):
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
-        elif len(ans)==1 and ans[0]=='-':
-            ans[0]='-'+t
-        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
-            ans[-1]='-'+t
+        #elif len(ans)==1 and ans[0]=='-':
+        #    ans[0]='-'+t
+        #elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+        #    ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -146,9 +146,6 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 stack.pop()
             # TODO: do we need more kinds of tokens?
-            #ADDED: if token is Variable or a Constant --> send it to output
-            elif isinstance(token,Variable) or isinstance(token,Constant):
-                output.append(token)
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
             elif ord(token)>=97 and ord(token)<=122:
@@ -195,6 +192,8 @@ class Constant(Expression):
         
     def __float__(self):
         return float(self.value)
+    
+    
         
 class Variable(Expression):
     """Represents a variable value"""
@@ -203,6 +202,8 @@ class Variable(Expression):
         
     def __str__(self):
         return str(self.value)
+        
+    
         
         
 class BinaryNode(Expression):
@@ -229,6 +230,7 @@ class BinaryNode(Expression):
         
         # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
         if isinstance(self.lhs,BinaryNode) and BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.lhs.op_symbol]:
+            print('eerste geval')
             # ADDED: check whether the type of the rhs node is a BinaryNode and if parenthesis are needed around rhs node, by checking if one of the following is true:
                 #the operator value of current BinaryNode is greater than the operator value of the rhs node, or 
                 #the value of the current BinaryNode AND of the rhs node are equal to '**', (ergo power operation value of 4 and right associative) 
@@ -241,43 +243,53 @@ class BinaryNode(Expression):
     
         # ADDED: if not, check whether the type of the rhs node is a BinaryNode and if parenthesis are necessary for the rhs node (checking procedure equal to the above one)
         elif isinstance(self.rhs,BinaryNode) and  (BinaryNode.oplist[self.op_symbol]>BinaryNode.oplist[self.rhs.op_symbol] or str(self.op_symbol)==str(self.rhs.op_symbol)=='**'):
+            print('twede geval')
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
         #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
-        elif isinstance(self,MulNode):
+        elif isinstance(self, MulNode):
             # 'x*0'='0' and '0*x'='0'
-            if self.lhs==Constant(0) or self.rhs==Constant('0'):
+            if self.lhs==Constant(0) or self.rhs==Constant(0):
                 return Constant(0)
             # 'x*1'='x'
-            if self.rhs==Constant(1):
+            elif self.rhs==Constant(1):
                 return lstring
             # '1*x'='x'
-            if self.lhs == Constant(1):
+            elif self.lhs == Constant(1):
                 return rstring
             # 'x*x'='x**2'
-            if self.lhs==self.rhs:
-                return 'self.lhs**2'
+            elif self.lhs==self.rhs:
+                return str(self.lhs**2)
             # '(x**n)*(x**m)'='x**(n+m)'
-            if isinstance(self.lhs,PowNode) and isinstance(self.rhs, PowNode) and self.lhs.lhs==self.rhs.lhs:
-                return 'self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)'
+
+            #elif isinstance(self.lhs, PowNode):
+               #if isinstance(self.rhs, PowNode) and self.rhs.lhs==self.lhs.lhs:
+                #   return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)) 
+                #else:
+                
+            #or isinstance(self.rhs, PowNode):
+                #if isinstance(self.lhs, PowNode):
+                    #if self.lhs.lhs==self.rhs
+                    
+                
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
                 #return a
                 return partial_evaluation(a)    
                 
         elif isinstance(self, AddNode):
-            # '0+x'='x'
+            #'0+x'='x'
             if self.lhs==Constant(0):
                 return rstring
-            # 'x+0'='x'
-            if self.rhs==Constant(0):
+            #'x+0'='x'
+            elif self.rhs==Constant(0):
                 return lstring
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
                 #return a
                 return partial_evaluation(a)
                 
-        elif isinstance(self, DivNode):
+        elif isinstance(self, BinaryNode) and self.op_symbol=='/':
             # 'x/1'='x'
             if self.rhs==Constant(1):
                 return lstring
@@ -297,9 +309,10 @@ class BinaryNode(Expression):
         
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
-             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-             #return a
-             return partial_evaluation(a)
+            print('else')
+            a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+            #return a
+            return partial_evaluation(a)
         
 
 class AddNode(BinaryNode):
