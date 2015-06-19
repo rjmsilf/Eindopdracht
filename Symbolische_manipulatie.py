@@ -46,24 +46,7 @@ def isint(string):
         return True
     except ValueError:
         return False
-###TODO: How to import made variables and constants in the __main__ document?
-def isconstant(string):
-    if ord(str(string))>=97 and ord(str(string))<=122:
-        A=isnumber(eval('string'))
-        return A
-    else:
-        return False
-            
-def isvariable(string):
-    if ord(string)>=97 and ord(string)<=122:
-        try:
-            a=eval('string')
-            if isnumber(a)==True:
-                return False
-            elif isnumber(a)==False:
-                return True
-        except TypeError:
-            return False
+
 
 
 class Expression():
@@ -264,30 +247,48 @@ class BinaryNode(Expression):
         if isinstance(self, MulNode):
             # 'x*0'='0' and '0*x'='0'
             if self.lhs==Constant(0) or self.rhs==Constant(0):
-                return Constant(0)
+                return str(Constant(0))
             # 'x*1'='x'
             elif self.rhs==Constant(1):
                 return lstring
             # '1*x'='x'
             elif self.lhs == Constant(1):
                 return rstring
+            ### x*b=b*x, x anything
+            #TODO: also with DivNode?
+            elif isinstance(self.rhs,Constant) and not isinstance(self.lhs,Constant):
+                return str(self.rhs*self.lhs)
             # 'x*x'='x**2'
             elif self.lhs==self.rhs:
-                return str(self.lhs**2)
+                return str(self.lhs**Constant(2))
+            # x**b*x=x**(b+1) and x**b*x**a=x**(b+a) 
+            elif isinstance(self.lhs,PowNode):
+                if isinstance(self.rhs,PowNode) and self.lhs.lhs==self.rhs.lhs:
+                    return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs))
+                elif self.lhs.lhs==self.rhs:
+                    return str(self.rhs**(self.lhs.rhs+Constant(1)))
+                else:
+                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
+                    return a
+            #x*x**b=x**(1+b)
+            elif isinstance(self.rhs,PowNode):
+                if self.lhs==self.rhs.lhs:
+                    return str(self.lhs**(Constant(1)+self.rhs.rhs))
+                else:
+                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
+                    return a    
             else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
                 return a
 
         elif isinstance(self.lhs, PowNode):
-            # '(x**n)*(x**m)'='x**(n+m)'
-            if isinstance(self.rhs, PowNode) and self.rhs.lhs==self.lhs.lhs:
-                return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)) 
-            elif not isinstance(self.rhs, BinaryNode) and self.rhs==self.lhs.lhs:
-                return str(self.rhs**(self.lhs.rhs+1))
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                return a
-                #return partial_evaluation(a)
+            print('iets')
+            print(self.lhs+'1')
+            print(self.rhs+'2')
+            print('iets')
+            a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+            return a
+            #return partial_evaluation(a)
 
         elif isinstance(self, AddNode):
             #'0+x'='x'
