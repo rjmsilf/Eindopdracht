@@ -23,10 +23,10 @@ def tokenize(string):
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
-        #elif len(ans)==1 and ans[0]=='-':
-        #    ans[0]='-'+t
-        #elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
-        #    ans[-1]='-'+t
+        elif len(ans)==1 and ans[0]=='-':
+            ans[0]='-'+t
+        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+            ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -108,6 +108,7 @@ class Expression():
             return answer
         
     # basic Shunting-yard algorithm
+            
     def fromString(string):
         # split into tokens
         tokens = tokenize(string)
@@ -125,16 +126,10 @@ class Expression():
             if isnumber(token):
                 # numbers go directly to the output
                 if isint(token):
-                    if stack[-1] == '-' and (stack[-2] in ['+', '/', '*', '-', '**', '(']):
-                        output.append(NegNode(int(token)))
-                    else:
-                        output.append(Constant(int(token)))
+                    output.append(Constant(int(token)))
                 else:
-                    if stack[-1] == '-' and (stack[-2] in ['+', '/', '*', '-', '**', '(']):
-                        output.append(NegNode(float(token)))
-                    else:
-                        output.append(Constant(float(token)))
-            
+                    output.append(Constant(float(token)))
+                    
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
@@ -223,7 +218,7 @@ class Variable(Expression):
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
 
-    def __init__(self, lhs, rhs, op_symbol, precedence, associativity):
+    def __init__(self, lhs, rhs, op_symbol, precedence=0, associativity=0):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
