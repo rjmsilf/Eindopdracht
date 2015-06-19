@@ -238,8 +238,7 @@ class BinaryNode(Expression):
     def __str__(self):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
-        print(self.precedence)
-        print(self.lhs.precedence)
+        print('eerste deel binarynode string')
         # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
 
         if self.precedence > self.lhs.precedence:
@@ -262,7 +261,7 @@ class BinaryNode(Expression):
         
                 
         #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
-        elif isinstance(self, MulNode):
+        if isinstance(self, MulNode):
             # 'x*0'='0' and '0*x'='0'
             if self.lhs==Constant(0) or self.rhs==Constant(0):
                 return Constant(0)
@@ -275,24 +274,23 @@ class BinaryNode(Expression):
             # 'x*x'='x**2'
             elif self.lhs==self.rhs:
                 return str(self.lhs**2)
-            # '(x**n)*(x**m)'='x**(n+m)'
-
-            #elif isinstance(self.lhs, PowNode):
-               #if isinstance(self.rhs, PowNode) and self.rhs.lhs==self.lhs.lhs:
-                #   return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)) 
-                #else:
-                
-            #or isinstance(self.rhs, PowNode):
-                #if isinstance(self.lhs, PowNode):
-                    #if self.lhs.lhs==self.rhs
-                    
-                
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
                 return a
-                #return partial_evaluation(a)    
-                
+
+        elif isinstance(self.lhs, PowNode):
+            # '(x**n)*(x**m)'='x**(n+m)'
+            if isinstance(self.rhs, PowNode) and self.rhs.lhs==self.lhs.lhs:
+                return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs)) 
+            elif not isinstance(self.rhs, BinaryNode) and self.rhs==self.lhs.lhs:
+                return str(self.rhs**(self.lhs.rhs+1))
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                return a
+                #return partial_evaluation(a)
+
         elif isinstance(self, AddNode):
+            print('Simplify AddNOde')
             #'0+x'='x'
             if self.lhs==Constant(0):
                 return rstring
@@ -304,7 +302,7 @@ class BinaryNode(Expression):
                 return a
                 #return partial_evaluation(a)
                 
-        elif isinstance(self, BinaryNode) and self.op_symbol=='/':
+        elif isinstance(self, DivNode):
             # 'x/1'='x'
             if self.rhs==Constant(1):
                 return lstring
@@ -313,14 +311,6 @@ class BinaryNode(Expression):
                 return a
                 #return partial_evaluation(a)
                 
-        #elif isinstance(self, PowNode):
-            # 'x**1'='x'
-        #    if self.rhs==Constant(1):
-        #        return lstring
-        #    else:
-        #        a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-        #        return a
-                #return partial_evaluation(a)
         
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
