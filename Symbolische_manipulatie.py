@@ -206,8 +206,9 @@ class Constant(Expression):
         
 class Variable(Expression):
     """Represents a variable value"""
-    def __init__(self, value):
+    def __init__(self, value, precedence=6):
         self.value = value
+        self.precedence=precedence
         
     def __str__(self):
         return str(self.value)
@@ -331,7 +332,7 @@ class BinaryNode(Expression):
         
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
-    def __init__(self, operand, op_symbol, precedence):
+    def __init__(self, operand, op_symbol=None, precedence=0):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
