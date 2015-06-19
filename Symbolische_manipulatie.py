@@ -238,7 +238,7 @@ class BinaryNode(Expression):
     def __str__(self):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
-        print('eerste deel binarynode string')
+        
         # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
 
         if self.precedence > self.lhs.precedence:
@@ -290,7 +290,6 @@ class BinaryNode(Expression):
                 #return partial_evaluation(a)
 
         elif isinstance(self, AddNode):
-            print('Simplify AddNOde')
             #'0+x'='x'
             if self.lhs==Constant(0):
                 return rstring
