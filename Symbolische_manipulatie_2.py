@@ -61,17 +61,99 @@ class Expression():
     
     # operator overloading:
     # this allows us to perform 'arithmetic' with expressions, and obtain another expression
+    
+    #### goed onderscheid maken: wat willen wij NIET zien --> in binaryNode extra if deel, wat willen wij WEL zien HIERONDER
+    #### in binary stijl, dus 5*x=5x hoor bij wat we NIET willen zien
+
     def __add__(self, other):
-        return AddNode(self, other)
+        # verwachting bij deze regels is dat constante vóór variable staat bij vermenigvuldiging
+        ## toevoegen Constanten bij elkaar schrijven tot één constante?
+        # 'x+x=2*x'
+        if self==other:
+            return MulNode(Constant(2),self)
+        # 'a*x+b*x=(a+b)*x' ## waarbij 'voorkeur' gaat naar Constanten bij elkaar schrijven
+        elif isinstance(self,MulNode) and isinstance(other,MulNode) and type(self.lhs)==type(other.lhs)==Constant and self.rhs==other.rhs:
+            a=self.lhs.value+other.lhs.value
+            return MulNode(Constant(a),self.rhs)
+        # 'a*x+x=(a+1)*x'
+        elif isinstance(self, MulNode) and self.rhs==other:
+            a=self.lhs.value+1
+            return MulNode(Constant(a),other)
+        # 'x+a*x=(a+1)*x'
+        elif isinstance(other,MulNode) and other.rhs==self:
+            a=other.lhs.value+1
+            return MulNode(Constant(a),self)
+        else:
+            return AddNode(self, other)
         
     def __sub__(self, other):
-        return SubNode(self, other)
+        # 'x-x=0*x'
+        if type(self)==type(other)==Variable and self==other:
+            return MulNode(Constant(0),self)
+        # 'a*x-b*x=(a-b)*x'
+        elif isinstance(self,MulNode) and isinstance(other,MulNode) and type(self.lhs)==type(other.lhs)==Constant and self.rhs==other.rhs:
+            a=self.lhs.value-other.lhs.value
+            return MulNode(Constant(a),self.rhs)
+        # 'a*x-x=(a-1)*x'
+        elif isinstance(self, MulNode) and self.rhs==other:
+            a=self.lhs.value-1
+            return MulNode(Constant(a),other)
+        # 'x-a*x=(1-a)*x'
+        elif isinstance(other,MulNode) and other.rhs==self:
+            a=1-other.lhs.value
+            return MulNode(Constant(a),self)
+        else:
+            return SubNode(self, other)
         
     def __mul__(self, other):
-        return MulNode(self, other)
+        # We want a Constant in front of a non Constant
+        if isinstance(other, Constant) and not isinstance(self, Constant):
+            return MulNode(other, self)
+        # 'x*x=x**2'
+        elif self==other:
+            return PowNode(self,Constant(2))
+        # 'a*x*x=a*x**2' # drietallen moeten apart omdat eerste tweetal andere combi
+        elif isinstance(self,MulNode) and self.rhs==other:
+            return MulNode(self.lhs, PowNode(self.rhs, Constant(2)))
+        # 'x**a*x**b=x**(a+b)
+        elif isinstance(self, PowNode) and isinstance(other,PowNode) and self.lhs==other.lhs:
+            #a=self.rhs.value+other.rhs.value
+            return PowNode(self.lhs,AddNode(self.rhs,other.rhs))
+        # 'c*x**a*x**b=c*x**(a+b)' ##### WERKT NIET
+        elif isinstance(self, MulNode) and isinstance(self.rhs, PowNode) and isinstance(other, PowNode) and self.rhs.lhs==other.lhs:
+            return MulNode(self.lhs,MulNode(self.rhs,other))
+        # 'x**a*x=x**(a+1)'
+        elif isinstance(self, PowNode) and self.lhs==other and isinstance(self.rhs, Constant):
+            a=self.rhs.value+1
+            return PowNode(self.lhs,Constant(a))
+        # 'x*x**a=x**(a+1)'
+        elif isinstance(other, PowNode) and self==other.lhs and isinstance(other.rhs, Constant):
+            a=other.rhs.value+1
+            return PowNode(self.lhs,Constant(a))
+        else:
+            return MulNode(self, other)
         
     def __truediv__(self, other):
-        return DivNode(self, other)
+        # 'a*x/b=a/b*x'
+        if isinstance(self,MulNode) and type(self.lhs)==type(other)==Constant and not isinstance(self.rhs, Constant):
+            return MulNode(DivNode(self.lhs, other), self.rhs)
+        # 'x/x=x**0'
+        elif self==other:
+            return PowNode(self,Constant(0))
+        # 'x**a/x**b=x**(a-b)
+        elif isinstance(self, PowNode) and isinstance(other,PowNode) and self.lhs==other.lhs and type(self.rhs)==type(other.rhs)==Constant:
+            a=self.rhs.value-other.rhs.value
+            return PowNode(self.lhs,Constant(a))
+        # 'x**a/x=x**(a-1)'
+        elif isinstance(self, PowNode) and self.lhs==other and isinstance(self.rhs, Constant):
+            a=self.rhs.value-1
+            return PowNode(self.lhs,Constant(a))
+        # 'x/x**a=x**(1-a)'
+        elif isinstance(other, PowNode) and self==other.lhs and isinstance(other.rhs, Constant):
+            a=1-other.rhs.value
+            return PowNode(self.lhs,Constant(a))
+        else:
+            return DivNode(self, other)
         
     def __pow__(self, other):
         return PowNode(self, other)
@@ -184,6 +266,7 @@ class Constant(Expression):
         
     def __float__(self):
         return float(self.value)
+        
     
     
         
@@ -245,7 +328,6 @@ class BinaryNode(Expression):
         # ADDED: if not, check whether the type of the rhs node is a BinaryNode and if parenthesis are necessary for the rhs node (checking procedure equal to the above one)
 
         elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
-
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
                 
@@ -260,37 +342,22 @@ class BinaryNode(Expression):
             # '1*x'='x'
             elif self.lhs == Constant(1):
                 return rstring
-            ### x*b=b*x, x anything
-            #TODO: also with DivNode?
-            elif isinstance(self.rhs,Constant) and not isinstance(self.lhs,Constant):
-                return str(self.rhs*self.lhs)
-            # 'x*x'='x**2'
-            elif self.lhs==self.rhs:
-                return str(self.lhs**Constant(2))
-            # x**b*x=x**(b+1) and x**b*x**a=x**(b+a) 
-            elif isinstance(self.lhs,PowNode):
-                if isinstance(self.rhs,PowNode) and self.lhs.lhs==self.rhs.lhs:
-                    return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs))
-                elif self.lhs.lhs==self.rhs:
-                    return str(self.rhs**(self.lhs.rhs+Constant(1)))
-                else:
-                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                    return a
-            #x*x**b=x**(1+b)
-            elif isinstance(self.rhs,PowNode):
-                if self.lhs==self.rhs.lhs:
-                    return str(self.lhs**(Constant(1)+self.rhs.rhs))
-                else:
-                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                    return a    
+            ###### HIER ALLE VERSIMPELINGEN VOOR ÉÉN NODE ########
             else:
                 a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
                 return a
 
-        elif isinstance(self.lhs, PowNode):
-            a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-            return a
-            #return partial_evaluation(a)
+        elif isinstance(self, PowNode):
+            # 'x**0 = 1'
+            if self.rhs==Constant(0):
+                return Constant(1)
+            # 'x**1=x'
+            elif self.rhs==Constant(1):
+                return lstring
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                return a
+                #return partial_evaluation(a)
 
         elif isinstance(self, AddNode):
             #'0+x'='x'
@@ -305,9 +372,16 @@ class BinaryNode(Expression):
                 #return partial_evaluation(a)
                 
         elif isinstance(self, DivNode):
+            ### TODO: zorgen dat float altijd naar breuk middels aparte functie
+            ## TODO: maak aparte functie die breuk combi naar kleinste breuk N schrijft
             # 'x/1'='x'
             if self.rhs==Constant(1):
                 return lstring
+            elif type(self.lhs)==type(self.rhs)==Constant and isint(str(self.lhs)) and isint(str(self.rhs)):
+                rest=ggd(self.lhs.value,self.rhs.value)
+                teller=int(self.lhs.value/rest)
+                noemer=int(self.rhs.value/rest)
+                return "%s %s %s" % (teller, self.op_symbol, noemer)
             else:
                 a = "%s %s %s" % (lstring, self.op_symbol, rstring)
                 return a
@@ -328,13 +402,12 @@ class UnaryNode(Expression):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
-        print(self.precedence)
     
     def __str__(self):
         return self.op_symbol+str(self.operand)
 
 #class Derivative(BinaryNode): 
-    
+
 class AddNode(BinaryNode):
     """Represents the addition operator"""
     def __init__(self, lhs, rhs):
