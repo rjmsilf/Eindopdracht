@@ -1,20 +1,6 @@
-from Symbolische_manipulatie import *
+index=-1
 
-#print(Expression.fromString('3*x+4*2*x/(1-5)**2**3'))
-#print(Expression.fromString('2/3/4'))
-a=Constant(1)
-b=Constant(2)
-c=Constant(3)
-d=Constant(4)
-e=Constant(5)
-x=Variable('x')
-y=Variable('y')
-z=Variable('z')
-#antwoord=Expression.fromString('a+b')
+print(type(index))
 
-
-#iets=Expression.fromString('c*x')
-#print(type(iets))
-#iets2=iets.derivative(x)
-#print(iets2)
-print(a+b+c*d)
+index2=index+1
+print(index2)
