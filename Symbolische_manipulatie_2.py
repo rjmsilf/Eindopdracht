@@ -106,8 +106,10 @@ class Expression():
             return SubNode(self, other)
         
     def __mul__(self, other):
+        if self == Constant(0) or other == Constant(0):
+            return Constant(0)
         # We want a Constant in front of a non Constant
-        if isinstance(other, Constant) and not isinstance(self, Constant):
+        elif isinstance(other, Constant) and not isinstance(self, Constant):
             return MulNode(other, self)
         # 'x*x=x**2'
         elif self==other:
@@ -129,7 +131,7 @@ class Expression():
         # 'x*x**a=x**(a+1)'
         elif isinstance(other, PowNode) and self==other.lhs and isinstance(other.rhs, Constant):
             a=other.rhs.value+1
-            return PowNode(self.lhs,Constant(a))
+            return PowNode(self,Constant(a))
         else:
             return MulNode(self, other)
         
@@ -156,22 +158,16 @@ class Expression():
             return DivNode(self, other)
         
     def __pow__(self, other):
-        return PowNode(self, other)
+        if self==Constant(0):
+            return Constant(0)
+        else:
+            return PowNode(self, other)
     
     def __neg__(self):
         return NegNode(self)
         
     # TODO: other overloads, such as __sub__, __mul__, etc.
-    def evaluate(self,dictionary=None):
-        # the second object represents the dictionary which we will give by ourself (looks for example like {'x':2, 'y':3})
-        # the eval class in python uses this automatically (definition)
-        if dictionary==None:
-            answer = eval(str(self))
-            return answer
-        else:
-            answer=eval(str(self),dictionary)
-            return answer
-        
+    
     # basic Shunting-yard algorithm
             
     def fromString(string):
@@ -267,7 +263,8 @@ class Constant(Expression):
     def __float__(self):
         return float(self.value)
         
-    
+    def evaluate(self, dictionary):
+        return self
     
         
 class Variable(Expression):
@@ -285,7 +282,11 @@ class Variable(Expression):
         else:
             return False
         
-    
+    def evaluate(self, dictionary):
+        if self.value in dictionary:
+            return Constant(str(self), dictionary)
+        else:
+            return Variable(self)
         
         
 class BinaryNode(Expression):
@@ -393,9 +394,25 @@ class BinaryNode(Expression):
             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
             return a
             #return partial_evaluation(a)
-
-
-        
+    
+    # evaluate the input with of without the given dictionary for variables   
+    def evaluate(self, dictionary = {}):
+        # evaluate the left- and righthandside of the expressiontree 
+        # in the beginning the leaves of the tree(i.e. the constants and variables) can be evaluated
+        links = self.lhs.evaluate(dictionary)
+        rechts = self.rhs.evaluate(dictionary)
+        # if the lefthandside isn't a constant, then run BinaryNode with "links" and "rechts"
+        if not isinstance(links, Constant):
+            return BinaryNode(links, rechts, self.op_symbol, self.precedence, self.associativity)
+        # if the righthandside isn't a constant either, then also run BinaryNode with "links" and "rechts"
+        elif not isinstance(rechts, Constant):
+            return BinaryNode(links, rechts, self.op_symbol, self.precedence, self.associativity)
+        # if the left- and righthandside are constants, then evaluate the value
+        else: 
+            a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
+            return a
+            
+                
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
     def __init__(self, operand, op_symbol=None, precedence=0):
@@ -460,21 +477,6 @@ def ggd(x,y):
         return x
     else:
         return ggd(x,deler(x,y))
-
-def partial_evaluation(a):
-    # ADDED: try whether there is something in the string that could be evaluated
-    try:
-        b = eval(a)
-        if isinstance(b,float):
-            return a
-        else:
-            return str(b)
-    # ADDED: if not, then return a if there is a TypeError
-    except TypeError: 
-        return a
-    # ADDED: if not, then return a if there is a NameError
-    except NameError: 
-        return a
 
 def deriv(y,x):
     if y==x:
