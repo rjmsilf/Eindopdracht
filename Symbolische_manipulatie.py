@@ -23,10 +23,10 @@ def tokenize(string):
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
-        elif len(ans)==1 and ans[0]=='-':
-            ans[0]='-'+t
-        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
-            ans[-1]='-'+t
+        #elif len(ans)==1 and ans[0]=='-':
+        #    ans[0]='-'+t
+        #elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+        #    ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -94,15 +94,45 @@ class Expression():
         output = []
         
         # list of operators incl their operator value
-        oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
-        
+        oplist = {'+':1,'-':1,'/':2,'*':2,'**':4}
+        index=-1
         for token in tokens:
+            index=index+1
+            
             if isnumber(token):
-                # numbers go directly to the output
-                if isint(token):
-                    output.append(Constant(int(token)))
+                if len(stack)==0:
+                    if isint(token):
+                        output.append(Constant(int(token)))
+                    else:
+                        output.append(Constant(float(token)))
+                elif stack[-1]=='&':
+                    if isint(token):
+                        output.append(NegNode(int(token)))
+                        stack.pop()
+                    else:
+                        output.append(NegNode(float(token)))
+                        stack.pop()
                 else:
-                    output.append(Constant(float(token)))
+                    if isint(token):
+                        output.append(Constant(int(token)))
+                    else:
+                        output.append(Constant(float(token)))
+                        
+           
+            elif token == '-':
+                if len(stack)==0 and len(output)==0:
+                    stack.append('&')
+                elif tokens[index-1] in oplist:
+                    stack.append('&')
+                elif tokens[index-1] == '(':
+                    stack.append('&')
+                else:
+                    while True:
+                        if len(stack) == 0 or stack[-1] not in oplist or oplist[token] == 4 or oplist[token] > oplist[stack[-1]]:
+                            break
+                        output.append(stack.pop())
+                    # push the new operator onto the stack
+                    stack.append(token)
                     
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
@@ -128,7 +158,12 @@ class Expression():
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
             elif ord(token)>=97 and ord(token)<=122:
-                output.append(Variable(str(token)))
+                if len(stack)==0:
+                    output.append(Variable(str(token)))
+                elif stack[-1]=='&':
+                    output.append(NegNode(Variable(token)))
+                else:
+                    output.append(Variable(token))
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
@@ -136,6 +171,7 @@ class Expression():
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
+        
 
         # convert RPN to an actual expression tree
         oplist = list(oplist)
@@ -245,72 +281,6 @@ class BinaryNode(Expression):
         elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
         
-                
-        #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
-        if isinstance(self, MulNode):
-            # 'x*0'='0' and '0*x'='0'
-            if self.lhs==Constant(0) or self.rhs==Constant(0):
-                return str(Constant(0))
-            # 'x*1'='x'
-            elif self.rhs==Constant(1):
-                return lstring
-            # '1*x'='x'
-            elif self.lhs == Constant(1):
-                return rstring
-            ### x*b=b*x, x anything
-            #TODO: also with DivNode?
-            elif isinstance(self.rhs,Constant) and not isinstance(self.lhs,Constant):
-                return str(self.rhs*self.lhs)
-            # 'x*x'='x**2'
-            elif self.lhs==self.rhs:
-                return str(self.lhs**Constant(2))
-            # x**b*x=x**(b+1) and x**b*x**a=x**(b+a) 
-            elif isinstance(self.lhs,PowNode):
-                if isinstance(self.rhs,PowNode) and self.lhs.lhs==self.rhs.lhs:
-                    return str(self.lhs.lhs**(self.lhs.rhs+self.rhs.rhs))
-                elif self.lhs.lhs==self.rhs:
-                    return str(self.rhs**(self.lhs.rhs+Constant(1)))
-                else:
-                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                    return a
-            #x*x**b=x**(1+b)
-            elif isinstance(self.rhs,PowNode):
-                if self.lhs==self.rhs.lhs:
-                    return str(self.lhs**(Constant(1)+self.rhs.rhs))
-                else:
-                    a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                    return a    
-            else:
-                a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                return a
-
-        elif isinstance(self.lhs, PowNode):
-            a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-            return a
-            #return partial_evaluation(a)
-
-        elif isinstance(self, AddNode):
-            #'0+x'='x'
-            if self.lhs==Constant(0):
-                return rstring
-            #'x+0'='x'
-            elif self.rhs==Constant(0):
-                return lstring
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                return a
-                #return partial_evaluation(a)
-                
-        elif isinstance(self, DivNode):
-            # 'x/1'='x'
-            if self.rhs==Constant(1):
-                return lstring
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                return a
-                #return partial_evaluation(a)
-                
-        
         # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
@@ -341,7 +311,7 @@ class UnaryNode(Expression):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
-        print(self.precedence)
+        
     
     def __str__(self):
         return self.op_symbol+str(self.operand)
@@ -376,7 +346,7 @@ class PowNode(BinaryNode):
 class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
-        super(NegNode, self).__init__(operand, '-', 3)
+        super(NegNode, self).__init__(operand, '-', 0)
 
 
 

@@ -69,8 +69,13 @@ class Expression():
         # verwachting bij deze regels is dat constante vóór variable staat bij vermenigvuldiging
         ## toevoegen Constanten bij elkaar schrijven tot één constante?
         # 'x+x=2*x'
-        if self==other:
+        if self==Constant(0):
+            return other
+        elif other==Constant(0):
+            return self
+        elif self==other:
             return MulNode(Constant(2),self)
+            
         # 'a*x+b*x=(a+b)*x' ## waarbij 'voorkeur' gaat naar Constanten bij elkaar schrijven
         elif isinstance(self,MulNode) and isinstance(other,MulNode) and type(self.lhs)==type(other.lhs)==Constant and self.rhs==other.rhs:
             a=self.lhs.value+other.lhs.value
@@ -109,6 +114,13 @@ class Expression():
         if self == Constant(0) or other == Constant(0):
             return Constant(0)
         # We want a Constant in front of a non Constant
+        if self== Constant(0) or other == Constant(0):
+            return Constant(0)
+        elif self == Constant(1):
+            return other
+        elif other == Constant(1):
+            print('hoi')
+            return self
         elif isinstance(other, Constant) and not isinstance(self, Constant):
             return MulNode(other, self)
         # 'x*x=x**2'
@@ -137,7 +149,11 @@ class Expression():
         
     def __truediv__(self, other):
         # 'a*x/b=a/b*x'
-        if isinstance(self,MulNode) and type(self.lhs)==type(other)==Constant and not isinstance(self.rhs, Constant):
+        if other==Constant(1):
+            print('hoi divnode')
+            print(type(self))
+            return self
+        elif isinstance(self,MulNode) and type(self.lhs)==type(other)==Constant and not isinstance(self.rhs, Constant):
             return MulNode(DivNode(self.lhs, other), self.rhs)
         # 'x/x=x**0'
         elif self==other:
@@ -158,8 +174,8 @@ class Expression():
             return DivNode(self, other)
         
     def __pow__(self, other):
-        if self==Constant(0):
-            return Constant(0)
+        if other==Constant(1):
+            return self
         else:
             return PowNode(self, other)
     
@@ -181,16 +197,29 @@ class Expression():
         output = []
         
         # list of operators incl their operator value
-        oplist = {'+':2,'-':2,'/':3,'*':3,'**':4}
-        
+        oplist = {'+','-','/','*','**'}
+        index=-1
         for token in tokens:
+            index=index+1
             if isnumber(token):
-                # numbers go directly to the output
-                if isint(token):
-                    output.append(Constant(int(token)))
+                if stack[-1]=='&':
+                    # numbers go directly to the output
+                    if isint(token):
+                        output.append(NegNode(int(token)))
+                    else:
+                        output.append(NegNode(float(token)))
                 else:
-                    output.append(Constant(float(token)))
-                    
+                    if isint(token):
+                        output.append(int(token))
+                    else:
+                        output.append(float(token))
+            elif token == '-':
+                if oplist[index-1] in oplist:
+                    stack.append('&')
+                elif oplist[index-1] == '(':
+                    stack.append('&')
+                else:
+                    stack.append(token)
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
@@ -330,48 +359,7 @@ class BinaryNode(Expression):
 
         elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
-        
-                
-        #ADDED: Simplify trivial expressions, e.g 'x+0'='x' for example
-        if isinstance(self, MulNode):
-            # 'x*0'='0' and '0*x'='0'
-            if self.lhs==Constant(0) or self.rhs==Constant(0):
-                return str(Constant(0))
-            # 'x*1'='x'
-            elif self.rhs==Constant(1):
-                return lstring
-            # '1*x'='x'
-            elif self.lhs == Constant(1):
-                return rstring
-            ###### HIER ALLE VERSIMPELINGEN VOOR ÉÉN NODE ########
-            else:
-                a = "%s %s %s" % (self.lhs, self.op_symbol, self.rhs)
-                return a
-
-        elif isinstance(self, PowNode):
-            # 'x**0 = 1'
-            if self.rhs==Constant(0):
-                return Constant(1)
-            # 'x**1=x'
-            elif self.rhs==Constant(1):
-                return lstring
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                return a
-                #return partial_evaluation(a)
-
-        elif isinstance(self, AddNode):
-            #'0+x'='x'
-            if self.lhs==Constant(0):
-                return rstring
-            #'x+0'='x'
-            elif self.rhs==Constant(0):
-                return lstring
-            else:
-                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
-                return a
-                #return partial_evaluation(a)
-                
+    
         elif isinstance(self, DivNode):
             ### TODO: zorgen dat float altijd naar breuk middels aparte functie
             ## TODO: maak aparte functie die breuk combi naar kleinste breuk N schrijft
