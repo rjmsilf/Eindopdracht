@@ -23,10 +23,6 @@ def tokenize(string):
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
-        #elif len(ans)==1 and ans[0]=='-':
-        #    ans[0]='-'+t
-        #elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
-        #    ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
@@ -311,10 +307,13 @@ class UnaryNode(Expression):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
-        
     
     def __str__(self):
         return self.op_symbol+str(self.operand)
+        
+    def __eq__(self, other):
+        if type(self)==type(other):
+            return self.operand==other.operand
 
 #class Derivative(BinaryNode): 
     
