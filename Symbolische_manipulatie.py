@@ -185,12 +185,12 @@ class Expression():
                 # pop the left paranthesis from the stack (but not to the output)
                 if stack[-1]=='(' and stack[-2]=='cos':
                     z=output.pop()
-                    output.append(CosinusNode(z))
+                    output.append(CosNode(z))
                     stack.pop()
                     stack.pop()
                 elif stack[-1]=='(' and stack[-2]=='sin':
                     z=output.pop()
-                    output.append(SinusNode(z))
+                    output.append(SinNode(z))
                     stack.pop()
                     stack.pop()
                 elif stack[-1]=='(' and stack[-2]== 'log':
@@ -200,7 +200,7 @@ class Expression():
                     stack.pop()
                 elif stack[-1]=='(' and stack[-2]== 'tan':
                     z=output.pop()
-                    output.append(TangensNode(z))
+                    output.append(TanNode(z))
                     stack.pop()
                     stack.pop()
                 else:
@@ -678,25 +678,53 @@ class NegNode(UnaryNode):
             return self
 
 
-class CosinusNode(UnaryNode): #we have to write cos(x), only works with bracket
+class CosNode(UnaryNode): #we have to write cos(x), only works with bracket
     """ Represents the function Cosinus"""
     def __init__(self,operand):
-        super(CosinusNode, self).__init__(operand, 'cos', 3)
-        
-class SinusNode(UnaryNode): #we have to write sin(x), only works with bracket
+        super(CosNode, self).__init__(operand, 'cos', 3)
+
+    def simplify(self):
+        if type(self.operand)==Constant:
+            return Constant(math.cos(self.operand.value))
+        else:
+            return self
+
+   
+class SinNode(UnaryNode): #we have to write sin(x), only works with bracket
     """ Represents the function Sinus"""
     def __init__(self,operand):
-        super(SinusNode, self).__init__(operand, 'sin', 3)
+        super(SinNode, self).__init__(operand, 'sin', 3)
 
-class TangensNode(UnaryNode): #we have to write tan(x), only works with bracket
+    def simplify(self):
+        if type(self.operand)==Constant:
+            return Constant(math.sin(self.operand.value))
+        else:
+            return self
+
+class TanNode(UnaryNode): #we have to write tan(x), only works with bracket
     """ Represents the function Tangens"""
     def __init__(self,operand):
-        super(TangensNode, self).__init__(operand, 'tan', 3)
+        super(TanNode, self).__init__(operand, 'tan', 3)
+
+    def simplify(self):
+        if type(self.operand)==Constant:
+            return Constant(math.tan(self.operand.value))
+        else:
+            return self
+
 
 class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
     """ Represents the function Logarithm"""
     def __init__(self,operand):
         super(LogNode, self).__init__(operand, 'log', 3)     
+
+
+    def simplify(self):
+        if type(self.operand)==Constant:
+            return Constant(math.log(self.operand.value))
+        else:
+            return self
+
         
         
 
