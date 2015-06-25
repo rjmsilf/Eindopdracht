@@ -272,6 +272,8 @@ class Constant(Expression):
     def evaluate(self, dictionary):
         return self
     
+    def derivative(self,variable):
+        return Constant(0)
         
 class Variable(Expression):
     """Represents a variable"""
@@ -300,7 +302,13 @@ class Variable(Expression):
             return Constant(x)
         else:
             # if not, the return the variable
-            return Variable(self)    
+            return Variable(self)
+    
+    def derivative(self,variable):
+        if self==variable:
+            return Constant(1)
+        else:
+            return Constant(0)
     
         
         
@@ -417,16 +425,14 @@ class AddNode(BinaryNode):
         super(AddNode, self).__init__(lhs, rhs, '+', 1, 'both')
 
     def simplify(self):
-        left=self.lhs
-        right=self.rhs
-        L=left.simplify()
-        R=right.simplify()
+        left=(self.lhs).simplify()
+        right=(self.rhs).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value+right.value
             return Constant(a)
-        # Constants should be right of a non Constant
-        elif type(left)==Constant and type(right)!=Constant:
+        # Constants should be right of a non Constant/NedNode
+        elif type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
             return (right+left).simplify()
         #(x+a)+b
         elif type(left)==AddNode and type(left.rhs)==type(right)==Constant:
@@ -434,7 +440,7 @@ class AddNode(BinaryNode):
             return (left.lhs+Constant(a)).simplify()
         # x+0=x
         elif right==Constant(0):
-            return left.simplify()
+            return left
         # x+x=2*x
         elif left==right:
             return (Constant(2)*right)
@@ -447,22 +453,13 @@ class AddNode(BinaryNode):
         # x+a*x=(1+a)*x
         elif type(right)==MulNode and left==right.rhs:
             return ((Constant(1)+right.lhs)*left).simplify()
-
-
-        # if left can be simplified, simplify at least left
-        elif not L==left:
-            #if also right can be simplified, also simplify right
-            if not R==right:
-                return (L+R).simplify()
-            #only left can be simplified
-            else:
-                return (L+right).simplify()
-
-        #if only right can be simplified, simplify only right
-        elif not R==right:
-            return (left+R).simplify()
         else:
             return left+right
+
+    def derivative(self,variable):
+        left=self.lhs.derivative(variable)
+        right=self.rhs.derivative(variable)
+        return (left+right).simplify()
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
@@ -470,24 +467,19 @@ class SubNode(BinaryNode):
         super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left')
 
     def simplify(self):
-        left=self.lhs
-        right=self.rhs
-        L=left.simplify()
-        R=right.simplify()
+        left=(self.lhs).simplify()
+        right=(self.rhs).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value-right.value
             return Constant(a)
-        # Constants should be right of a non Constant
-        #elif type(left)==Constant and type(right)!=Constant:
-        #    return (right+left).simplify()
         #(x-a)-b=x-(a+b)
         elif type(left)==SubNode and type(left.rhs)==type(right)==Constant:
             a=left.rhs.value+right.value
             return (left.lhs-Constant(a)).simplify()
         # x-0=x
         elif right==Constant(0):
-            return left.simplify()
+            return left
         # x-x=0
         elif left==right:
             return Constant(0)
@@ -500,21 +492,13 @@ class SubNode(BinaryNode):
         # x-a*x=(1-a)*x
         elif type(right)==MulNode and left==right.rhs:
             return ((Constant(1)-right.lhs)*left).simplify()
-        # if left can be simplified, simplify at least left
-        elif not L==left:
-            #if also right can be simplified, also simplify right
-            if not R==right:
-                return (L-R).simplify()
-            #only left can be simplified
-            else:
-                return (L-right).simplify()
-
-        #if only right can be simplified, simplify only right
-        elif not R==right:
-            return (left-R).simplify()
         else:
             return left-right
 
+    def derivative(self,variable):
+        left=self.lhs.derivative(variable)
+        right=self.rhs.derivative(variable)
+        return (left-right).simplify()
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
@@ -522,10 +506,8 @@ class MulNode(BinaryNode):
         super(MulNode, self).__init__(lhs, rhs, '*', 2, 'both')
 
     def simplify(self):
-        left=self.lhs
-        right=self.rhs
-        L=left.simplify()
-        R=right.simplify()
+        left=(self.lhs).simplify()
+        right=(self.rhs).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value*right.value
@@ -539,7 +521,7 @@ class MulNode(BinaryNode):
             return (Constant(a)*right.rhs).simplify()
         # 1*x=x
         elif left==Constant(1):
-            return right.simplify()
+            return right
         # 0*x=0
         elif left==Constant(0):
             return Constant(0)
@@ -555,23 +537,13 @@ class MulNode(BinaryNode):
         # x*x**a=x**(1+a)
         elif type(right)==PowNode and left==right.lhs:
             return (left**(Constant(1)+right.rhs)).simplify()
-
-
-        # if left can be simplified, simplify at least left
-        elif not L==left:
-            #if also right can be simplified, also simplify right
-            if not R==right:
-                return (L*R).simplify()
-            #only left can be simplified
-            else:
-                return (L*right).simplify()
-
-        #if only right can be simplified, simplify only right
-        elif not R==right:
-            return (left*R).simplify()
         else:
             return left*right
 
+    def derivative(self,variable):
+        left=self.lhs.derivative(variable)
+        right=self.rhs.derivative(variable)
+        return (self.lhs*right+left*self.rhs).simplify()    
         
 class DivNode(BinaryNode):
     """Represents the division operator"""
@@ -579,17 +551,17 @@ class DivNode(BinaryNode):
         super(DivNode, self).__init__(lhs, rhs, '/', 2, 'left')
 
     def simplify(self):
-        left=self.lhs
-        right=self.rhs
-        L=left.simplify()
-        R=right.simplify()
+        
+        BinaryNode.simplify(self)
+        left=(self.lhs).simplify()
+        right=(self.rhs).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value/right.value
             return Constant(a)
         # x/1 = x
         elif right==Constant(1):
-            return left.simplify()
+            return left
         # x/a=(1/a)*x
         elif type(right)==Constant:
             return ((Constant(1)/right)*left).simplify()
@@ -608,21 +580,7 @@ class DivNode(BinaryNode):
         # x*x**a=x**(1-a)
         elif type(right)==PowNode and left==right.lhs:
             return (left**(Constant(1)-right.rhs)).simplify()
-
-        # if left can be simplified, simplify at least left
-        elif not L==left:
-            #if also right can be simplified, also simplify right
-            if not R==right:
-                return (L/R).simplify()
-            #only left can be simplified
-            else:
-                return (L/right).simplify()
-
-        #if only right can be simplified, simplify only right
-        elif not R==right:
-            return (left/R).simplify()
         else:
-            print('nothing can be simplified')
             return left/right
 
 
@@ -633,35 +591,21 @@ class PowNode(BinaryNode):
 
 
     def simplify(self):
-        left=self.lhs
-        right=self.rhs
-        L=left.simplify()
-        R=right.simplify()
+        left=(self.lhs).simplify()
+        right=(self.rhs).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value**right.value
             return Constant(a)
         # x**1=x
         elif right==Constant(1):
-            return left.simplify()
+            return left
         # x**0=1
         elif right==Constant(0):
             return Constant(1)
         # (x**a)**b=x**(a*b)
         elif type(left)==PowNode:
             return (left.lhs**(left.rhs*right)).simplify()
-        # if left can be simplified, simplify at least left
-        elif not L==left:
-            #if also right can be simplified, also simplify right
-            if not R==right:
-                return (L**R).simplify()
-            #only left can be simplified
-            else:
-                return (L**right).simplify()
-
-        #if only right can be simplified, simplify only right
-        elif not R==right:
-            return (left**R).simplify()
         else:
             return left**right
 
@@ -731,26 +675,4 @@ class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-def deler(x,y):
-    antwoord=y%x
-    return antwoord
 
-def ggd(x,y):
-    if y<x:
-        return ggd(y,x)
-    elif x == y:
-        return x
-    elif x == 0 and y == 0:
-        return 0
-    elif x == 0:
-        return y
-    elif y == 0:
-        return x
-    else:
-        return ggd(x,deler(x,y))
-
-def deriv(y,x):
-    if y==x:
-        return Constant(1)
-    else:
-        return Constant(0)
