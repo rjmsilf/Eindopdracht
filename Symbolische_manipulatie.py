@@ -364,7 +364,7 @@ class BinaryNode(Expression):
         # if the left- and righthandside are constants, then evaluate the value
         else: 
             # check whether the lefthandside has precedence three, then it's a NegNode and we want parenthesis around it
-            if links.precedence == 3 :
+            if links.precedence == 3:
                 a = Constant(eval("(%s) %s %s" % (links, self.op_symbol, rechts)))
                 return a
             # check whether the righthandside has precedence three, then it's a NegNode and we want parenthesis around it.    
@@ -670,7 +670,6 @@ class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
         super(NegNode, self).__init__(operand, '-', 3)
-`
     def simplify(self):
         if type(self.operand)==Constant:
             a= -1*self.operand.value
