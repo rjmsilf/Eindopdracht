@@ -391,7 +391,7 @@ class BinaryNode(Expression):
             left=z.lhs
             right=z.rhs
             op_symbol=z.op_symbol
-            if type(left)==type(right)==Constant:
+            if (type(left)==Constant or type(left)==NegNode) and (type(right)==Constant or type(right)==NegNode):
                 a= Constant(eval("%s %s %s" % (left, op_symbol, right)))
                 return a
         
@@ -402,7 +402,7 @@ class BinaryNode(Expression):
                     return left
                 else:
                     return 
-            if z.associativity=='left':
+            elif z.associativity=='left':
                 if right==z.identity:
                     return left
                 else:
