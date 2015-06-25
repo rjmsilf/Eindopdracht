@@ -171,21 +171,33 @@ class Expression():
                 while not stack[-1] == '(':
                     output.append(stack.pop())
                 # pop the left paranthesis from the stack (but not to the output)
-                if stack[-1]=='(' and stack[-2]=='cos':
+                # checken if the last two elements in output are variables/variables, then we have a function f(x)
+                if stack[-1]=='(' and type(output[-2])==Variable and (type(output[-1])==Variable or type(output[-1])==Constant):
+                    stack.pop()
+                    x=output.pop()
+                    f=output.pop()
+                    output.append(FunctionNode(x,f))
+                elif len(stack)==1:
+                    stack.pop()
+                #check if the brackets are from a cos(x)
+                elif stack[-1]=='(' and stack[-2]=='cos':
                     z=output.pop()
                     output.append(CosNode(z))
                     stack.pop()
                     stack.pop()
+                #check if the brackets are from a sin(x)
                 elif stack[-1]=='(' and stack[-2]=='sin':
                     z=output.pop()
                     output.append(SinNode(z))
                     stack.pop()
                     stack.pop()
+                #check if the brackets are from a log
                 elif stack[-1]=='(' and stack[-2]== 'log':
                     z=output.pop()
                     output.append(LogNode(z))
                     stack.pop()
                     stack.pop()
+                #check if the brackets are from a tan(x)
                 elif stack[-1]=='(' and stack[-2]== 'tan':
                     z=output.pop()
                     output.append(TanNode(z))
@@ -428,6 +440,8 @@ class UnaryNode(Expression):
     def __str__(self):
         if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
             return "%s(%s)" % (self.op_symbol, self.operand)
+        elif type(self)==FunctionNode:
+            return "%s(%s)" % (self.operand, self.op_symbol)
         else:
             return self.op_symbol+str(self.operand)
         
@@ -688,7 +702,7 @@ class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
         else:
             return self
             
-class FunctionNode(UnaryNode):
+class FunctionNode(UnaryNode): #we can use a function in a string written with two letters or one letter and one constant, e.g. f(x) or f(2) 
     """Represents an arbitrary function"""
     def __init__(self,naam, operand):
         super(FunctionNode,self).__init__(operand, naam, 3)
