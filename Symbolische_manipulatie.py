@@ -128,10 +128,10 @@ class Expression():
                         output.append(Constant(float(token)))
                 elif stack[-1]=='&':
                     if isint(token):
-                        output.append(NegNode(int(token)))
+                        output.append(NegNode(Constant(int(token))))
                         stack.pop()
                     else:
-                        output.append(NegNode(float(token)))
+                        output.append(NegNode(Constant(float(token))))
                         stack.pop()
                 else:
                     if isint(token):
@@ -213,7 +213,7 @@ class Expression():
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
             elif ord(token)>=97 and ord(token)<=122:
                 if len(stack)==0:
-                    output.append(Variable(str(token)))
+                    output.append(Variable(token))
                 elif stack[-1]=='&':
                     output.append(NegNode(Variable(token)))
                 else:
@@ -245,7 +245,7 @@ class Constant(Expression):
     """Represents a constant value"""
     def __init__(self, value, precedence = 6):
         self.value = value
-        if self.value < 0 : 
+        if int(self.value) < 0 : 
             self.precedence = 3
         else: 
             self.precedence = 6
@@ -269,7 +269,7 @@ class Constant(Expression):
     def simplify(self):
         return self
         
-    def evaluate(self, dictionary):
+    def evaluate(self, dictionary={}):
         return self
     
         
@@ -291,7 +291,7 @@ class Variable(Expression):
     def simplify(self):
         return self
         
-    def evaluate(self, dictionary):
+    def evaluate(self, dictionary={}):
         # check whether the variable does appear in the dictionary
         if self.value in dictionary:
             # if so, give the variable his new value
@@ -379,7 +379,7 @@ class BinaryNode(Expression):
         
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
-    def __init__(self, operand, op_symbol=None, precedence=0):
+    def __init__(self, operand, op_symbol, precedence=0):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
