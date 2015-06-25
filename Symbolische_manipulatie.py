@@ -26,6 +26,7 @@ def tokenize(string):
         else:
             ans.append(t)
     return ans
+    
    
 # check if a string represents a numeric value
 def isnumber(string):
@@ -95,7 +96,25 @@ class Expression():
         for token in tokens:
             index=index+1
             
-            if isnumber(token):
+            if token == 'cos':
+                stack.append('cos')
+                print('Cosinus')
+                print(stack)
+                print(output)
+            
+            elif token == 'sin':
+                stack.append('sin')
+                print('Sinus')
+                print(stack)
+                print(output)
+            
+            elif token == 'log':
+                stack.append('log')
+                print('Log')
+                print(stack)
+                print(output)
+                
+            elif isnumber(token):
                 if len(stack)==0:
                     if isint(token):
                         output.append(Constant(int(token)))
@@ -113,6 +132,9 @@ class Expression():
                         output.append(Constant(int(token)))
                     else:
                         output.append(Constant(float(token)))
+                print('isnumber')
+                print(stack)
+                print(output)
                         
            
             elif token == '-':
@@ -141,15 +163,40 @@ class Expression():
                     output.append(stack.pop())
                 # push the new operator onto the stack
                 stack.append(token)
+                print('is in token')
+                print(stack)
+                print(output)
             elif token == '(':
                 # left parantheses go to the stack
                     stack.append(token)
+                    print('is ( ')
+                    print(stack)
+                    print(output)
             elif token == ')':
                 # right paranthesis: pop everything upto the last left paranthesis to the output
                 while not stack[-1] == '(':
                     output.append(stack.pop())
                 # pop the left paranthesis from the stack (but not to the output)
-                stack.pop()
+                if stack[-1]=='(' and stack[-2]=='cos':
+                    z=output.pop()
+                    output.append(CosinusNode(z))
+                    stack.pop()
+                    stack.pop()
+                elif stack[-1]=='(' and stack[-2]=='sin':
+                    z=output.pop()
+                    output.append(SinusNode(z))
+                    stack.pop()
+                    stack.pop()
+                elif stack[-1]=='(' and stack[-2]== 'log':
+                    z=output.pop()
+                    output.append(LogNode(z))
+                    stack.pop()
+                    stack.pop()
+                else:
+                    stack.pop()
+                print('is )')
+                print(stack)
+                print(output)
             # TODO: do we need more kinds of tokens?
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
@@ -371,7 +418,22 @@ class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
         super(NegNode, self).__init__(operand, '-', 3)
+ 
+class CosinusNode(UnaryNode): #we have to write cos(x), only works with bracket
+    """ Represents a function in the expression"""
+    def __init__(self,operand):
+        super(CosinusNode, self).__init__(operand, 'cos', 3)
+        
+class SinusNode(UnaryNode): #we have to write cos(x), only works with bracket
+    """ Represents a function in the expression"""
+    def __init__(self,operand):
+        super(SinusNode, self).__init__(operand, 'sin', 3)
 
+class LogNode(UnaryNode): #we have to write cos(x), only works with bracket
+    """ Represents a function in the expression"""
+    def __init__(self,operand):
+        super(LogNode, self).__init__(operand, 'log', 3)     
+        
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
