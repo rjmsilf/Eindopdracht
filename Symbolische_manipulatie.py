@@ -271,7 +271,7 @@ class Constant(Expression):
     
         
 class Variable(Expression):
-    """Represents a variable value"""
+    """Represents a variable"""
     def __init__(self, value, precedence=6):
         self.value = value
         self.precedence=precedence
@@ -431,22 +431,22 @@ class NegNode(UnaryNode):
         super(NegNode, self).__init__(operand, '-', 3)
  
 class CosinusNode(UnaryNode): #we have to write cos(x), only works with bracket
-    """ Represents a function in the expression"""
+    """ Represents the function Cosinus"""
     def __init__(self,operand):
         super(CosinusNode, self).__init__(operand, 'cos', 3)
         
 class SinusNode(UnaryNode): #we have to write sin(x), only works with bracket
-    """ Represents a function in the expression"""
+    """ Represents the function Sinus"""
     def __init__(self,operand):
         super(SinusNode, self).__init__(operand, 'sin', 3)
 
 class TangensNode(UnaryNode): #we have to write tan(x), only works with bracket
-    """ Represents a function in the expression"""
+    """ Represents the function Tangens"""
     def __init__(self,operand):
         super(TangensNode, self).__init__(operand, 'tan', 3)
 
 class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
-    """ Represents a function in the expression"""
+    """ Represents the function Logarithm"""
     def __init__(self,operand):
         super(LogNode, self).__init__(operand, 'log', 3)     
         
