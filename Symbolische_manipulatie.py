@@ -228,9 +228,14 @@ class Variable(Expression):
             return False
         
     def evaluate(self, dictionary):
+        # check whether the variable does appear in the dictionary
         if self.value in dictionary:
-            return Constant(str(self), dictionary)
+            # if so, give the variable his new value
+            x = dictionary[str(self.value)]
+            # then return it as a constant
+            return Constant(x)
         else:
+            # if not, the return the variable
             return Variable(self)    
     
         
@@ -258,26 +263,23 @@ class BinaryNode(Expression):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
         
-        # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
-
+        # check whether the precedence of the current BinaryNode is greater than the precendence of the lhs node. 
+        # Then we need parenthesis at least around the lhs node
         if self.precedence > self.lhs.precedence:
-
-            # ADDED: check whether the type of the rhs node is a BinaryNode and if parenthesis are needed around rhs node, by checking if one of the following is true:
-            #the operator value of current BinaryNode is greater than the operator value of the rhs node, or 
-            #the value of the current BinaryNode AND of the rhs node are equal to '**', (ergo power operation value of 4 and right associative) 
-            # Notice: we check the last condition only for the rhs, because the power operator is right associative.
+            # check whether the precendence of the current BinaryNode is greater than the precedence of the rhs node
+            # or (if the precendence of the current BinaryNode is equal to the precendence of the rhs node and the associativity of the current BinaryNode is left)
+            # if one of this also holds, then we need parenthesis around the lhs and rhs node
             if self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
                 return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
-            # ADDED: if not, add only parenthesis to the lhs    
+            # if not, add only parenthesis to the lhs node   
             else:
                 return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
-    
-        # ADDED: if not, check whether the type of the rhs node is a BinaryNode and if parenthesis are necessary for the rhs node (checking procedure equal to the above one)
-
+        # if not, check whether the precendence of the current BinaryNode is greater than the precendence of the rhs node 
+        # or (if the precendence of the current BinaryNode is equal to the precendence of the rhs node and the associativity of the current BinaryNode is left)
+        # if one of these holds, then we need parenthesis only around the rhs node
         elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
-        
-        # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
+       # if everything doesn't hold, then return the general case without parenthesis. 
         else:
             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
             return a
@@ -297,8 +299,18 @@ class BinaryNode(Expression):
             return BinaryNode(links, rechts, self.op_symbol, self.precedence, self.associativity)
         # if the left- and righthandside are constants, then evaluate the value
         else: 
-            a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
-            return a    
+            # check whether the lefthandside has precedence three, then it's a NegNode and we want parenthesis around it
+            if links.precedence == 3 :
+                a = Constant(eval("(%s) %s %s" % (links, self.op_symbol, rechts)))
+                return a
+            # check whether the righthandside has precedence three, then it's a NegNode and we want parenthesis around it.    
+            elif rechts.precedence == 3:
+                a = Constant(eval("%s %s (%s)" % (links, self.op_symbol, rechts)))
+                return a
+            # if not, then we don't want parenthesis and we can eval it immediately
+            else:
+                a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
+                return a    
 
         
 class UnaryNode(Expression):
@@ -314,6 +326,19 @@ class UnaryNode(Expression):
     def __eq__(self, other):
         if type(self)==type(other):
             return self.operand==other.operand
+            
+    def evaluate(self, dictionary = {}):
+        # first evaluate the operand with the dictionary
+        x = self.operand.evaluate(dictionary)
+        # check whether x is a variable
+        if isinstance(x, Variable):
+            # if so, return it as a variable
+            a = Variable("%s%s" % (self.op_symbol, x))
+            return a
+        # if not, return it as a constant
+        else:
+            a = Constant(eval("%s%s" % (self.op_symbol, x)))
+            return a
 
 #class Derivative(BinaryNode): 
     
@@ -345,13 +370,11 @@ class PowNode(BinaryNode):
 class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
-        super(NegNode, self).__init__(operand, '-', 0)
-
+        super(NegNode, self).__init__(operand, '-', 3)
 
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
-# ADDED: evaluate a part of the string
 def deler(x,y):
     antwoord=y%x
     return antwoord

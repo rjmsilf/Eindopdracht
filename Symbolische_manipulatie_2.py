@@ -313,7 +313,9 @@ class Variable(Expression):
         
     def evaluate(self, dictionary):
         if self.value in dictionary:
-            return Constant(str(self), dictionary)
+            x = dictionary[str(self.value)]
+            print('x = '+str(x))
+            return Constant(x)
         else:
             return Variable(self)
         
