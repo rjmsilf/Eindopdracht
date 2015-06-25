@@ -119,6 +119,7 @@ class Expression():
                 #print('Log')
                 #print(stack)
                 #print(output)
+        
                 
             elif isnumber(token):
                 if len(stack)==0:
@@ -128,10 +129,10 @@ class Expression():
                         output.append(Constant(float(token)))
                 elif stack[-1]=='&':
                     if isint(token):
-                        output.append(NegNode(int(token)))
+                        output.append(NegNode(Constant(int(token))))
                         stack.pop()
                     else:
-                        output.append(NegNode(float(token)))
+                        output.append(NegNode(Constant(float(token))))
                         stack.pop()
                 else:
                     if isint(token):
@@ -213,7 +214,7 @@ class Expression():
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
             elif ord(token)>=97 and ord(token)<=122:
                 if len(stack)==0:
-                    output.append(Variable(str(token)))
+                    output.append(Variable(token))
                 elif stack[-1]=='&':
                     output.append(NegNode(Variable(token)))
                 else:
@@ -307,12 +308,13 @@ class Variable(Expression):
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
 
-    def __init__(self, lhs, rhs, op_symbol, precedence=0, associativity=0):
+    def __init__(self, lhs, rhs, op_symbol, precedence=0, associativity=0, identity=0):
         self.lhs = lhs
         self.rhs = rhs
         self.op_symbol = op_symbol
         self.precedence = precedence
         self.associativity = associativity
+        self.identity = identity
     #ADDED: list of operators incl their operator value
 
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
@@ -375,11 +377,26 @@ class BinaryNode(Expression):
             else:
                 a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
                 return a    
+                
+    def simplify(self):
+        left=self.lhs.simplify()
+        right=self.rhs.simplify()
+        
+        if left==self.identity:
+            print('links is identiteit')
+            return right
+        elif right==self.identity:
+            print('rechts is identity')
+            return left
+        else:
+            return left + right
+        
+        
 
         
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
-    def __init__(self, operand, op_symbol=None, precedence=0):
+    def __init__(self, operand, op_symbol=None, precedence=6):
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
@@ -414,13 +431,16 @@ class UnaryNode(Expression):
 class AddNode(BinaryNode):
     """Represents the addition operator"""
     def __init__(self, lhs, rhs):
-        super(AddNode, self).__init__(lhs, rhs, '+', 1, 'both')
+        super(AddNode, self).__init__(lhs, rhs, '+', 1, 'both', 0)
 
     def simplify(self):
         left=self.lhs
         right=self.rhs
         L=left.simplify()
         R=right.simplify()
+        
+        super(AddNode,self).simplify()
+        
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value+right.value
@@ -433,8 +453,8 @@ class AddNode(BinaryNode):
             a=left.rhs.value+right.value
             return (left.lhs+Constant(a)).simplify()
         # x+0=x
-        elif right==Constant(0):
-            return left.simplify()
+        #elif right==Constant(0):
+        #    return left.simplify()
         # x+x=2*x
         elif left==right:
             return (Constant(2)*right)
@@ -467,13 +487,15 @@ class AddNode(BinaryNode):
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
     def __init__(self, lhs, rhs):
-        super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left')
+        super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left', 0)
 
     def simplify(self):
         left=self.lhs
         right=self.rhs
         L=left.simplify()
         R=right.simplify()
+        
+        super(SubNode,self).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value-right.value
@@ -519,13 +541,14 @@ class SubNode(BinaryNode):
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
     def __init__(self, lhs, rhs):
-        super(MulNode, self).__init__(lhs, rhs, '*', 2, 'both')
+        super(MulNode, self).__init__(lhs, rhs, '*', 2, 'both', 1)
 
     def simplify(self):
         left=self.lhs
         right=self.rhs
         L=left.simplify()
         R=right.simplify()
+        super(MulNode,self).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value*right.value
@@ -576,13 +599,14 @@ class MulNode(BinaryNode):
 class DivNode(BinaryNode):
     """Represents the division operator"""
     def __init__(self, lhs, rhs):
-        super(DivNode, self).__init__(lhs, rhs, '/', 2, 'left')
+        super(DivNode, self).__init__(lhs, rhs, '/', 2, 'left', 1)
 
     def simplify(self):
         left=self.lhs
         right=self.rhs
         L=left.simplify()
         R=right.simplify()
+        super(DivNode,self).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value/right.value
@@ -629,7 +653,7 @@ class DivNode(BinaryNode):
 class PowNode(BinaryNode):
     """Represents the power operator"""
     def __init__(self, lhs, rhs):
-        super(PowNode, self).__init__(lhs, rhs, '**', 4, 'right')
+        super(PowNode, self).__init__(lhs, rhs, '**', 4, 'right', 1)
 
 
     def simplify(self):
@@ -637,6 +661,7 @@ class PowNode(BinaryNode):
         right=self.rhs
         L=left.simplify()
         R=right.simplify()
+        super(PowNode,self).simplify()
         # Simplify when childs are Constants
         if type(left)==type(right)==Constant:
             a=left.value**right.value
@@ -724,6 +749,11 @@ class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
             return Constant(math.log(self.operand.value))
         else:
             return self
+            
+class FunctionNode(UnaryNode):
+    """Represents an arbitrary function"""
+    def __init__(self,naam, operand):
+        super(FunctionNode,self).__init__(operand, naam, 3)
 
         
         
