@@ -16,17 +16,20 @@ def tokenize(string):
     tokenstring = ''.join(tokenstring)
     #split on spaces - this gives us our tokens
     tokens = tokenstring.split()
-
+    
     #special casing for **:
     #ADDED: special casting for '-' as a negative ###(TODO: how to evaluate -Constant and -Var etc)###
     ans = []
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
             ans[-1] = '**'
+        elif len(ans)==1 and ans[0]=='-':
+            ans[0]='-'+t
+        elif len(ans)>1 and ans[-1]=='-' and ans[-2] in ['+','-','/','*','**','(']:
+            ans[-1]='-'+t
         else:
             ans.append(t)
     return ans
-    
    
 # check if a string represents a numeric value
 def isnumber(string):
@@ -58,26 +61,129 @@ class Expression():
     
     # operator overloading:
     # this allows us to perform 'arithmetic' with expressions, and obtain another expression
+    
+    #### goed onderscheid maken: wat willen wij NIET zien --> in binaryNode extra if deel, wat willen wij WEL zien HIERONDER
+    #### in binary stijl, dus 5*x=5x hoor bij wat we NIET willen zien
+
     def __add__(self, other):
-        return AddNode(self, other)
+        # verwachting bij deze regels is dat constante vóór variable staat bij vermenigvuldiging
+        ## toevoegen Constanten bij elkaar schrijven tot één constante?
+        # 'x+x=2*x'
+        if self==Constant(0):
+            return other
+        elif other==Constant(0):
+            return self
+        elif self==other:
+            return MulNode(Constant(2),self)
+            
+        # 'a*x+b*x=(a+b)*x' ## waarbij 'voorkeur' gaat naar Constanten bij elkaar schrijven
+        elif isinstance(self,MulNode) and isinstance(other,MulNode) and type(self.lhs)==type(other.lhs)==Constant and self.rhs==other.rhs:
+            a=self.lhs.value+other.lhs.value
+            return MulNode(Constant(a),self.rhs)
+        # 'a*x+x=(a+1)*x'
+        elif isinstance(self, MulNode) and self.rhs==other:
+            a=self.lhs.value+1
+            return MulNode(Constant(a),other)
+        # 'x+a*x=(a+1)*x'
+        elif isinstance(other,MulNode) and other.rhs==self:
+            a=other.lhs.value+1
+            return MulNode(Constant(a),self)
+        else:
+            return AddNode(self, other)
         
     def __sub__(self, other):
-        return SubNode(self, other)
+        # 'x-x=0*x'
+        if type(self)==type(other)==Variable and self==other:
+            return MulNode(Constant(0),self)
+        # 'a*x-b*x=(a-b)*x'
+        elif isinstance(self,MulNode) and isinstance(other,MulNode) and type(self.lhs)==type(other.lhs)==Constant and self.rhs==other.rhs:
+            a=self.lhs.value-other.lhs.value
+            return MulNode(Constant(a),self.rhs)
+        # 'a*x-x=(a-1)*x'
+        elif isinstance(self, MulNode) and self.rhs==other:
+            a=self.lhs.value-1
+            return MulNode(Constant(a),other)
+        # 'x-a*x=(1-a)*x'
+        elif isinstance(other,MulNode) and other.rhs==self:
+            a=1-other.lhs.value
+            return MulNode(Constant(a),self)
+        else:
+            return SubNode(self, other)
         
     def __mul__(self, other):
-        return MulNode(self, other)
+        if self == Constant(0) or other == Constant(0):
+            return Constant(0)
+        # We want a Constant in front of a non Constant
+        if self== Constant(0) or other == Constant(0):
+            return Constant(0)
+        elif self == Constant(1):
+            return other
+        elif other == Constant(1):
+            print('hoi')
+            return self
+        elif isinstance(other, Constant) and not isinstance(self, Constant):
+            return MulNode(other, self)
+        # 'x*x=x**2'
+        elif self==other:
+            return PowNode(self,Constant(2))
+        # 'a*x*x=a*x**2' # drietallen moeten apart omdat eerste tweetal andere combi
+        elif isinstance(self,MulNode) and self.rhs==other:
+            return MulNode(self.lhs, PowNode(self.rhs, Constant(2)))
+        # 'x**a*x**b=x**(a+b)
+        elif isinstance(self, PowNode) and isinstance(other,PowNode) and self.lhs==other.lhs:
+            #a=self.rhs.value+other.rhs.value
+            return PowNode(self.lhs,AddNode(self.rhs,other.rhs))
+        # 'c*x**a*x**b=c*x**(a+b)' ##### WERKT NIET
+        elif isinstance(self, MulNode) and isinstance(self.rhs, PowNode) and isinstance(other, PowNode) and self.rhs.lhs==other.lhs:
+            return MulNode(self.lhs,MulNode(self.rhs,other))
+        # 'x**a*x=x**(a+1)'
+        elif isinstance(self, PowNode) and self.lhs==other and isinstance(self.rhs, Constant):
+            a=self.rhs.value+1
+            return PowNode(self.lhs,Constant(a))
+        # 'x*x**a=x**(a+1)'
+        elif isinstance(other, PowNode) and self==other.lhs and isinstance(other.rhs, Constant):
+            a=other.rhs.value+1
+            return PowNode(self,Constant(a))
+        else:
+            return MulNode(self, other)
         
     def __truediv__(self, other):
-        return DivNode(self, other)
+        # 'a*x/b=a/b*x'
+        if other==Constant(1):
+            print('hoi divnode')
+            print(type(self))
+            return self
+        elif isinstance(self,MulNode) and type(self.lhs)==type(other)==Constant and not isinstance(self.rhs, Constant):
+            return MulNode(DivNode(self.lhs, other), self.rhs)
+        # 'x/x=x**0'
+        elif self==other:
+            return PowNode(self,Constant(0))
+        # 'x**a/x**b=x**(a-b)
+        elif isinstance(self, PowNode) and isinstance(other,PowNode) and self.lhs==other.lhs and type(self.rhs)==type(other.rhs)==Constant:
+            a=self.rhs.value-other.rhs.value
+            return PowNode(self.lhs,Constant(a))
+        # 'x**a/x=x**(a-1)'
+        elif isinstance(self, PowNode) and self.lhs==other and isinstance(self.rhs, Constant):
+            a=self.rhs.value-1
+            return PowNode(self.lhs,Constant(a))
+        # 'x/x**a=x**(1-a)'
+        elif isinstance(other, PowNode) and self==other.lhs and isinstance(other.rhs, Constant):
+            a=1-other.rhs.value
+            return PowNode(self.lhs,Constant(a))
+        else:
+            return DivNode(self, other)
         
     def __pow__(self, other):
-        return PowNode(self, other)
+        if other==Constant(1):
+            return self
+        else:
+            return PowNode(self, other)
     
     def __neg__(self):
         return NegNode(self)
         
     # TODO: other overloads, such as __sub__, __mul__, etc.
-     
+    
     # basic Shunting-yard algorithm
             
     def fromString(string):
@@ -91,73 +197,29 @@ class Expression():
         output = []
         
         # list of operators incl their operator value
-        oplist = {'+':1,'-':1,'/':2,'*':2,'**':4}
+        oplist = {'+','-','/','*','**'}
         index=-1
         for token in tokens:
             index=index+1
-            
-            if token == 'cos':
-                stack.append('cos')
-                #print('Cosinus')
-                #print(stack)
-                #print(output)
-            
-            elif token == 'sin':
-                stack.append('sin')
-                #print('Sinus')
-                #print(stack)
-                #print(output)
-            
-            elif token == 'log':
-                stack.append('log')
-                #print('Log')
-                #print(stack)
-                #print(output)
-                
-            elif token == 'tan':
-                stack.append('tan')
-                #print('Log')
-                #print(stack)
-                #print(output)
-                
-            elif isnumber(token):
-                if len(stack)==0:
-                    if isint(token):
-                        output.append(Constant(int(token)))
-                    else:
-                        output.append(Constant(float(token)))
-                elif stack[-1]=='&':
+            if isnumber(token):
+                if stack[-1]=='&':
+                    # numbers go directly to the output
                     if isint(token):
                         output.append(NegNode(int(token)))
-                        stack.pop()
                     else:
                         output.append(NegNode(float(token)))
-                        stack.pop()
                 else:
                     if isint(token):
-                        output.append(Constant(int(token)))
+                        output.append(int(token))
                     else:
-                        output.append(Constant(float(token)))
-                #print('isnumber')
-                #print(stack)
-                #print(output)
-                        
-           
+                        output.append(float(token))
             elif token == '-':
-                if len(stack)==0 and len(output)==0:
+                if oplist[index-1] in oplist:
                     stack.append('&')
-                elif tokens[index-1] in oplist:
-                    stack.append('&')
-                elif tokens[index-1] == '(':
+                elif oplist[index-1] == '(':
                     stack.append('&')
                 else:
-                    while True:
-                        if len(stack) == 0 or stack[-1] not in oplist or oplist[token] == 4 or oplist[token] > oplist[stack[-1]]:
-                            break
-                        output.append(stack.pop())
-                    # push the new operator onto the stack
                     stack.append(token)
-                    
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
@@ -169,55 +231,20 @@ class Expression():
                     output.append(stack.pop())
                 # push the new operator onto the stack
                 stack.append(token)
-                #print('is in token')
-                #print(stack)
-                #print(output)
             elif token == '(':
                 # left parantheses go to the stack
                     stack.append(token)
-                    #print('is ( ')
-                    #print(stack)
-                    #print(output)
             elif token == ')':
                 # right paranthesis: pop everything upto the last left paranthesis to the output
                 while not stack[-1] == '(':
                     output.append(stack.pop())
                 # pop the left paranthesis from the stack (but not to the output)
-                if stack[-1]=='(' and stack[-2]=='cos':
-                    z=output.pop()
-                    output.append(CosinusNode(z))
-                    stack.pop()
-                    stack.pop()
-                elif stack[-1]=='(' and stack[-2]=='sin':
-                    z=output.pop()
-                    output.append(SinusNode(z))
-                    stack.pop()
-                    stack.pop()
-                elif stack[-1]=='(' and stack[-2]== 'log':
-                    z=output.pop()
-                    output.append(LogNode(z))
-                    stack.pop()
-                    stack.pop()
-                elif stack[-1]=='(' and stack[-2]== 'tan':
-                    z=output.pop()
-                    output.append(TangensNode(z))
-                    stack.pop()
-                    stack.pop()
-                else:
-                    stack.pop()
-                #print('is )')
-                #print(stack)
-                #print(output)
+                stack.pop()
             # TODO: do we need more kinds of tokens?
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
             elif ord(token)>=97 and ord(token)<=122:
-                if len(stack)==0:
-                    output.append(Variable(str(token)))
-                elif stack[-1]=='&':
-                    output.append(NegNode(Variable(token)))
-                else:
-                    output.append(Variable(token))
+                output.append(Variable(str(token)))
             else:
                 # unknown token
                 raise ValueError('Unknown token: %s' % token)
@@ -225,7 +252,6 @@ class Expression():
         # pop any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
-        
 
         # convert RPN to an actual expression tree
         oplist = list(oplist)
@@ -271,7 +297,7 @@ class Constant(Expression):
     
         
 class Variable(Expression):
-    """Represents a variable"""
+    """Represents a variable value"""
     def __init__(self, value, precedence=6):
         self.value = value
         self.precedence=precedence
@@ -286,16 +312,12 @@ class Variable(Expression):
             return False
         
     def evaluate(self, dictionary):
-        # check whether the variable does appear in the dictionary
         if self.value in dictionary:
-            # if so, give the variable his new value
             x = dictionary[str(self.value)]
-            # then return it as a constant
+            print('x = '+str(x))
             return Constant(x)
         else:
-            # if not, the return the variable
-            return Variable(self)    
-    
+            return Variable(self)
         
         
 class BinaryNode(Expression):
@@ -321,28 +343,48 @@ class BinaryNode(Expression):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
         
-        # check whether the precedence of the current BinaryNode is greater than the precendence of the lhs node. 
-        # Then we need parenthesis at least around the lhs node
+        # ADDED: check whether the type of the lhs node is a BinaryNode and if parenthesis are necessary for AT LEAST the lhs node
+
         if self.precedence > self.lhs.precedence:
-            # check whether the precendence of the current BinaryNode is greater than the precedence of the rhs node
-            # or (if the precendence of the current BinaryNode is equal to the precendence of the rhs node and the associativity of the current BinaryNode is left)
-            # if one of this also holds, then we need parenthesis around the lhs and rhs node
+
+            # ADDED: check whether the type of the rhs node is a BinaryNode and if parenthesis are needed around rhs node, by checking if one of the following is true:
+            #the operator value of current BinaryNode is greater than the operator value of the rhs node, or 
+            #the value of the current BinaryNode AND of the rhs node are equal to '**', (ergo power operation value of 4 and right associative) 
+            # Notice: we check the last condition only for the rhs, because the power operator is right associative.
             if self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
                 return "(%s) %s (%s)" % (lstring, self.op_symbol, rstring)
-            # if not, add only parenthesis to the lhs node   
+            # ADDED: if not, add only parenthesis to the lhs    
             else:
                 return "(%s) %s %s" % (lstring, self.op_symbol, rstring)
-        # if not, check whether the precendence of the current BinaryNode is greater than the precendence of the rhs node 
-        # or (if the precendence of the current BinaryNode is equal to the precendence of the rhs node and the associativity of the current BinaryNode is left)
-        # if one of these holds, then we need parenthesis only around the rhs node
+    
+        # ADDED: if not, check whether the type of the rhs node is a BinaryNode and if parenthesis are necessary for the rhs node (checking procedure equal to the above one)
+
         elif self.precedence > self.rhs.precedence or (self.precedence == self.rhs.precedence and self.associativity == 'left'):
             return "%s %s (%s)" % (lstring, self.op_symbol, rstring)
-       # if everything doesn't hold, then return the general case without parenthesis. 
+    
+        elif isinstance(self, DivNode):
+            ### TODO: zorgen dat float altijd naar breuk middels aparte functie
+            ## TODO: maak aparte functie die breuk combi naar kleinste breuk N schrijft
+            # 'x/1'='x'
+            if self.rhs==Constant(1):
+                return lstring
+            elif type(self.lhs)==type(self.rhs)==Constant and isint(str(self.lhs)) and isint(str(self.rhs)):
+                rest=ggd(self.lhs.value,self.rhs.value)
+                teller=int(self.lhs.value/rest)
+                noemer=int(self.rhs.value/rest)
+                return "%s %s %s" % (teller, self.op_symbol, noemer)
+            else:
+                a = "%s %s %s" % (lstring, self.op_symbol, rstring)
+                return a
+                #return partial_evaluation(a)
+                
+        
+        # ADDED: if everything doesn't hold, then return the general case without parenthesis. 
         else:
             a = "%s %s %s" % (lstring, self.op_symbol, rstring)
             return a
             #return partial_evaluation(a)
-     
+    
     # evaluate the input with of without the given dictionary for variables   
     def evaluate(self, dictionary = {}):
         # evaluate the left- and righthandside of the expressiontree 
@@ -357,20 +399,10 @@ class BinaryNode(Expression):
             return BinaryNode(links, rechts, self.op_symbol, self.precedence, self.associativity)
         # if the left- and righthandside are constants, then evaluate the value
         else: 
-            # check whether the lefthandside has precedence three, then it's a NegNode and we want parenthesis around it
-            if links.precedence == 3 :
-                a = Constant(eval("(%s) %s %s" % (links, self.op_symbol, rechts)))
-                return a
-            # check whether the righthandside has precedence three, then it's a NegNode and we want parenthesis around it.    
-            elif rechts.precedence == 3:
-                a = Constant(eval("%s %s (%s)" % (links, self.op_symbol, rechts)))
-                return a
-            # if not, then we don't want parenthesis and we can eval it immediately
-            else:
-                a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
-                return a    
-
-        
+            a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
+            return a
+            
+                
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
     def __init__(self, operand, op_symbol=None, precedence=0):
@@ -379,32 +411,10 @@ class UnaryNode(Expression):
         self.precedence = precedence
     
     def __str__(self):
-        if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
-            return "%s(%s)" % (self.op_symbol, self.operand)
-        else:
-            return self.op_symbol+str(self.operand)
-        
-    def __eq__(self, other):
-        if type(self)==type(other):
-            return self.operand==other.operand
-            
-    def evaluate(self, dictionary = {}):
-        # first evaluate the operand with the dictionary
-        x = self.operand.evaluate(dictionary)
-        if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
-            return Constant(eval('math.'+str(self.op_symbol)+'('+str(self.operand)+')'))
-        # check whether x is a variable
-        if isinstance(x, Variable):
-            # if so, return it as a variable
-            a = Variable("%s%s" % (self.op_symbol, x))
-            return a
-        # if not, return it as a constant
-        else:
-            a = Constant(eval("%s%s" % (self.op_symbol, x)))
-            return a
+        return self.op_symbol+str(self.operand)
 
 #class Derivative(BinaryNode): 
-    
+
 class AddNode(BinaryNode):
     """Represents the addition operator"""
     def __init__(self, lhs, rhs):
@@ -434,31 +444,12 @@ class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
         super(NegNode, self).__init__(operand, '-', 3)
- 
-class CosinusNode(UnaryNode): #we have to write cos(x), only works with bracket
-    """ Represents the function Cosinus"""
-    def __init__(self,operand):
-        super(CosinusNode, self).__init__(operand, 'cos', 3)
-        
-class SinusNode(UnaryNode): #we have to write sin(x), only works with bracket
-    """ Represents the function Sinus"""
-    def __init__(self,operand):
-        super(SinusNode, self).__init__(operand, 'sin', 3)
 
-class TangensNode(UnaryNode): #we have to write tan(x), only works with bracket
-    """ Represents the function Tangens"""
-    def __init__(self,operand):
-        super(TangensNode, self).__init__(operand, 'tan', 3)
 
-class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
-    """ Represents the function Logarithm"""
-    def __init__(self,operand):
-        super(LogNode, self).__init__(operand, 'log', 3)     
-        
-        
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
+# ADDED: evaluate a part of the string
 def deler(x,y):
     antwoord=y%x
     return antwoord
