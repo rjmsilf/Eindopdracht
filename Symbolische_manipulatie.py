@@ -98,21 +98,27 @@ class Expression():
             
             if token == 'cos':
                 stack.append('cos')
-                print('Cosinus')
-                print(stack)
-                print(output)
+                #print('Cosinus')
+                #print(stack)
+                #print(output)
             
             elif token == 'sin':
                 stack.append('sin')
-                print('Sinus')
-                print(stack)
-                print(output)
+                #print('Sinus')
+                #print(stack)
+                #print(output)
             
             elif token == 'log':
                 stack.append('log')
-                print('Log')
-                print(stack)
-                print(output)
+                #print('Log')
+                #print(stack)
+                #print(output)
+                
+            elif token == 'tan':
+                stack.append('tan')
+                #print('Log')
+                #print(stack)
+                #print(output)
                 
             elif isnumber(token):
                 if len(stack)==0:
@@ -132,9 +138,9 @@ class Expression():
                         output.append(Constant(int(token)))
                     else:
                         output.append(Constant(float(token)))
-                print('isnumber')
-                print(stack)
-                print(output)
+                #print('isnumber')
+                #print(stack)
+                #print(output)
                         
            
             elif token == '-':
@@ -163,15 +169,15 @@ class Expression():
                     output.append(stack.pop())
                 # push the new operator onto the stack
                 stack.append(token)
-                print('is in token')
-                print(stack)
-                print(output)
+                #print('is in token')
+                #print(stack)
+                #print(output)
             elif token == '(':
                 # left parantheses go to the stack
                     stack.append(token)
-                    print('is ( ')
-                    print(stack)
-                    print(output)
+                    #print('is ( ')
+                    #print(stack)
+                    #print(output)
             elif token == ')':
                 # right paranthesis: pop everything upto the last left paranthesis to the output
                 while not stack[-1] == '(':
@@ -192,11 +198,16 @@ class Expression():
                     output.append(LogNode(z))
                     stack.pop()
                     stack.pop()
+                elif stack[-1]=='(' and stack[-2]== 'tan':
+                    z=output.pop()
+                    output.append(TangensNode(z))
+                    stack.pop()
+                    stack.pop()
                 else:
                     stack.pop()
-                print('is )')
-                print(stack)
-                print(output)
+                #print('is )')
+                #print(stack)
+                #print(output)
             # TODO: do we need more kinds of tokens?
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
@@ -424,15 +435,21 @@ class CosinusNode(UnaryNode): #we have to write cos(x), only works with bracket
     def __init__(self,operand):
         super(CosinusNode, self).__init__(operand, 'cos', 3)
         
-class SinusNode(UnaryNode): #we have to write cos(x), only works with bracket
+class SinusNode(UnaryNode): #we have to write sin(x), only works with bracket
     """ Represents a function in the expression"""
     def __init__(self,operand):
         super(SinusNode, self).__init__(operand, 'sin', 3)
 
-class LogNode(UnaryNode): #we have to write cos(x), only works with bracket
+class TangensNode(UnaryNode): #we have to write tan(x), only works with bracket
+    """ Represents a function in the expression"""
+    def __init__(self,operand):
+        super(TangensNode, self).__init__(operand, 'tan', 3)
+
+class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
     """ Represents a function in the expression"""
     def __init__(self,operand):
         super(LogNode, self).__init__(operand, 'log', 3)     
+        
         
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
