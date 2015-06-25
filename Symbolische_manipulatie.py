@@ -379,7 +379,10 @@ class UnaryNode(Expression):
         self.precedence = precedence
     
     def __str__(self):
-        return self.op_symbol+str(self.operand)
+        if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
+            return "%s(%s)" % (self.op_symbol, self.operand)
+        else:
+            return self.op_symbol+str(self.operand)
         
     def __eq__(self, other):
         if type(self)==type(other):
@@ -388,6 +391,8 @@ class UnaryNode(Expression):
     def evaluate(self, dictionary = {}):
         # first evaluate the operand with the dictionary
         x = self.operand.evaluate(dictionary)
+        if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
+            return Constant(eval('math.'+str(self.op_symbol)+'('+str(self.operand)+')'))
         # check whether x is a variable
         if isinstance(x, Variable):
             # if so, return it as a variable
