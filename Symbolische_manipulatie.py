@@ -400,8 +400,8 @@ class BinaryNode(Expression):
         elif type(z)==NegNode:
             return z
         else:
-            left=z.lhs
-            right=z.rhs
+            left=z.lhs.simplify()
+            right=z.rhs.simplify()
             op_symbol=z.op_symbol
             if (type(left)==Constant or type(left)==NegNode) and (type(right)==Constant or type(right)==NegNode):
                 a= Constant(eval("%s %s %s" % (left, op_symbol, right)))
@@ -413,17 +413,17 @@ class BinaryNode(Expression):
                 elif right==z.identity:
                     return left
                 else:
-                    return 
+                    return type(z)(left,right)
             elif z.associativity=='left':
                 if right==z.identity:
                     return left
                 else:
-                    return left+right
+                    return type(z)(left,right)
             else:
                 if right==z.identity:
                     return left
                 else:
-                    return left+right
+                    return type(z)(left,right)
         
         
 
@@ -500,7 +500,7 @@ class AddNode(BinaryNode):
     def derivative(self,variable):
         left=self.lhs.derivative(variable)
         right=self.rhs.derivative(variable)
-        return (left+right).simplify()
+        return left+right
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
@@ -537,7 +537,7 @@ class SubNode(BinaryNode):
     def derivative(self,variable):
         left=self.lhs.derivative(variable)
         right=self.rhs.derivative(variable)
-        return (left-right).simplify()
+        return left-right
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
@@ -580,7 +580,7 @@ class MulNode(BinaryNode):
     def derivative(self,variable):
         left=self.lhs.derivative(variable)
         right=self.rhs.derivative(variable)
-        return (self.lhs*right+left*self.rhs).simplify()    
+        return self.lhs*right+left*self.rhs    
         
 class DivNode(BinaryNode):
     """Represents the division operator"""
@@ -595,9 +595,12 @@ class DivNode(BinaryNode):
         if type(left)==type(right)==Constant:
             a=left.value/right.value
             return Constant(a)
-        # x/a=(1/a)*x
-        elif type(right)==Constant:
-            return ((Constant(1)/right)*left).simplify()
+        # a/b/c=a/(b*c)
+        elif type(left)==DivNode:
+            return (left.lhs/(left.rhs*right)).simplify()
+        # a/(b/c)=a*(c/b)
+        elif type(right)==DivNode:
+            return (left*(right.rhs/right.lhs)).simplify()
         # 0/x=0
         elif left==Constant(0):
             return Constant(0)
