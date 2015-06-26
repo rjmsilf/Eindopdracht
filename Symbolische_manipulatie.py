@@ -275,6 +275,9 @@ class Constant(Expression):
     def derivative(self,variable):
         return Constant(0)
         
+    def hasvariable(self,variable):
+        return False
+        
 class Variable(Expression):
     """Represents a variable"""
     def __init__(self, value, precedence=6):
@@ -310,7 +313,8 @@ class Variable(Expression):
         else:
             return Constant(0)
     
-        
+    def hasvariable(self,variable):
+        return self==variable
         
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
@@ -384,6 +388,21 @@ class BinaryNode(Expression):
             else:
                 a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
                 return a    
+
+    def hasvariable(self,variable):
+        if type(self) in (NegNode, SinNode, CosNode, TanNode, LogNode):
+            return self.operand==variable
+        elif type(self) in (AddNode, SubNode, MulNode, DivNode, PowNode):
+            return self.lhs==variable or self.rhs==variable
+        else:
+            return False
+
+    #def isfunction(self,variable):
+    #    while self.hasvariable(variable)==False and :
+    #        self.lhs.hasvariable(variable)
+    #        self.rhs.hasvariable(variable)
+    #    return True
+            
                 
     def simplify(self):
         left=(self.lhs).simplify()
@@ -425,8 +444,7 @@ class BinaryNode(Expression):
                     return left
             else:
                 return T(left,right)
-        
-        
+            
 
         
 class UnaryNode(Expression):
@@ -465,7 +483,7 @@ class UnaryNode(Expression):
             a = Constant(eval("%s%s" % (self.op_symbol, x)))
             return a
 
-#class Derivative(BinaryNode): 
+
     
 class AddNode(BinaryNode):
     """Represents the addition operator"""
@@ -499,9 +517,11 @@ class AddNode(BinaryNode):
             return left+right
 
     def derivative(self,variable):
-        left=self.lhs.derivative(variable)
-        right=self.rhs.derivative(variable)
-        return left+right
+        L=self.lhs.simplify()
+        R=self.rhs.simplify()
+        left=L.derivative(variable)
+        right=R.derivative(variable)
+        return (left+right).simplify()
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
@@ -536,9 +556,11 @@ class SubNode(BinaryNode):
             return left-right
 
     def derivative(self,variable):
-        left=self.lhs.derivative(variable)
-        right=self.rhs.derivative(variable)
-        return left-right
+        L=self.lhs.simplify()
+        R=self.rhs.simplify()
+        left=L.derivative(variable)
+        right=R.derivative(variable)
+        return (left-right).simplify()
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
@@ -579,9 +601,11 @@ class MulNode(BinaryNode):
             return left*right
 
     def derivative(self,variable):
-        left=self.lhs.derivative(variable)
-        right=self.rhs.derivative(variable)
-        return self.lhs*right+left*self.rhs    
+        L=self.lhs.simplify()
+        R=self.rhs.simplify()
+        left=L.derivative(variable)
+        right=R.derivative(variable)
+        return (L*right+left*R).simplify()
         
 class DivNode(BinaryNode):
     """Represents the division operator"""
@@ -620,7 +644,13 @@ class DivNode(BinaryNode):
         else:
             return left/right
 
-
+    def derivative(self,variable):
+        L=self.lhs.simplify()
+        R=self.rhs.simplify()
+        left=L.derivative(variable)
+        right=R.derivative(variable)
+        return ((left*R-L*right)/(R*R)).simplify()
+        
 class PowNode(BinaryNode):
     """Represents the power operator"""
     def __init__(self, lhs, rhs):
@@ -645,6 +675,13 @@ class PowNode(BinaryNode):
         else:
             return left**right
 
+    def derivative(self,variable):
+        L=self.lhs.simplify()
+        R=self.rhs.simplify()
+        left=L.derivative(variable)
+        right=R.derivative(variable)
+        if L.hasvariable(variable) and not R.hasvariable(variable):
+            return (R*L**(R-Constant(1))*left).simplify()
 
 class NegNode(UnaryNode):
     """Represents the negation operator"""
@@ -658,6 +695,12 @@ class NegNode(UnaryNode):
         else:
             return self
 
+    def derivative(self,variable):
+        O=self.operand.simplify()
+        return (Constant(-1)*O.derivative(variable)).simplify()
+    
+    def hasvariable(self,variable):
+        return self.operand.hasvariable(variable)
 
 class CosNode(UnaryNode): #we have to write cos(x), only works with bracket
     """ Represents the function Cosinus"""
