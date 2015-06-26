@@ -388,16 +388,14 @@ class BinaryNode(Expression):
     def simplify(self):
         left=(self.lhs).simplify()
         right=(self.rhs).simplify()
-        
-        
         z=self.simplify_specific()
+        T=type(z)
         
-        
-        if type(z)==Constant:
+        if T==Constant:
             return z
-        elif type(z)==Variable:
+        elif T==Variable:
             return z
-        elif type(z)==NegNode:
+        elif T==NegNode:
             return z
         else:
             left=z.lhs.simplify()
@@ -412,18 +410,21 @@ class BinaryNode(Expression):
                     return right
                 elif right==z.identity:
                     return left
+                elif type(left)==T and left.associativity =='both' and type(left.rhs)==type(right):
+                    return T(left.lhs,T(left.rhs,right)).simplify()
+                elif type(right)==T and right.associativity =='both' and type(left)==type(right.lhs):
+                    return (T(T(left,right.lhs),right.rhs)).simplify()
                 else:
-                    return type(z)(left,right)
+                    return T(left,right)
             elif z.associativity=='left':
                 if right==z.identity:
                     return left
                 else:
-                    return type(z)(left,right)
-            else:
-                if right==z.identity:
+                    return T(left,right)
+            elif right==z.identity:
                     return left
-                else:
-                    return type(z)(left,right)
+            else:
+                return T(left,right)
         
         
 
