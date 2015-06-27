@@ -15,5 +15,5 @@ iets=(x**b)**c
 print(iets.derivative(x))
 print(iets.hasvariable(x))
 
-#NU VERANDERD
-
+if str(x) in str(iets.lhs):
+    print('ja')
