@@ -1,4 +1,8 @@
 import math
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
 
 # split a string into mathematical tokens
 # returns a list of numbers, operators, parantheses and commas
@@ -302,7 +306,7 @@ class Variable(Expression):
             # then return it as a constant
             return Constant(x)
         else:
-            # if not, the return the variable
+            # if not, then return the variable
             return Variable(self)
     
     def derivative(self,variable):
@@ -459,12 +463,22 @@ class UnaryNode(Expression):
     def __eq__(self, other):
         if type(self)==type(other):
             return self.operand==other.operand
+        else:
+            return False
             
     def evaluate(self, dictionary = {}):
         # first evaluate the operand with the dictionary
         x = self.operand.evaluate(dictionary)
+        # check whether the op_symbol is a standard function
         if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
-            return Constant(eval('math.'+str(self.op_symbol)+'('+str(self.operand)+')'))
+            # check whether x represents a variable
+            if isinstance(x, Variable):
+                # if so, then it can't be evaluated. So we want the whole operation to represent as a variable 
+                a = Variable("%s(%s)" % (self.op_symbol, x))
+                return a
+            # if not, then eval it and return it as a constant
+            else:
+                return Constant(eval('math.'+str(self.op_symbol)+'('+str(x)+')'))
         # check whether x is a variable
         if isinstance(x, Variable):
             # if so, return it as a variable
@@ -745,7 +759,7 @@ class TanNode(UnaryNode): #we have to write tan(x), only works with bracket
         return self
 
 
-class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
+class LogNode(UnaryNode): #we have to write log(x), only works with bracket
     """ Represents the function Logarithm"""
     def __init__(self,operand):
         super(LogNode, self).__init__(operand, 'log', 3)     
@@ -764,7 +778,20 @@ class FunctionNode(UnaryNode): #we can use a function in a string written with t
     def __init__(self,naam, operand):
         super(FunctionNode,self).__init__(operand, naam, 3)
 
-        
+
+# with this function, you plot a polynomial. Call it with graph(function, range(-x, +x))
+def graph(formula, x_range):
+    function = str(formula)
+    with PdfPages("Graph.pdf") as pdf:
+        x = np.array(x_range)
+        y = eval(function)
+        plt.plot(x, y)
+        plt.grid()
+        plt.xlabel('$X\ axis$')
+        plt.ylabel('$Y\ axis$')
+        plt.title('$Graph\ of\ \ $' + function)
+        plt.show()  
+        pdf.savefig()        
         
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
