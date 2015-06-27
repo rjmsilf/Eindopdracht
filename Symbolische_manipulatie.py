@@ -274,9 +274,7 @@ class Constant(Expression):
     
     def derivative(self,variable):
         return Constant(0)
-        
-    def hasvariable(self,variable):
-        return False
+
         
 class Variable(Expression):
     """Represents a variable"""
@@ -313,8 +311,6 @@ class Variable(Expression):
         else:
             return Constant(0)
     
-    def hasvariable(self,variable):
-        return self==variable
         
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
@@ -389,20 +385,6 @@ class BinaryNode(Expression):
                 a = Constant(eval("%s %s %s" % (links, self.op_symbol, rechts)))
                 return a    
 
-    def hasvariable(self,variable):
-        if type(self) in (NegNode, SinNode, CosNode, TanNode, LogNode):
-            return self.operand==variable
-        elif type(self) in (AddNode, SubNode, MulNode, DivNode, PowNode):
-            return self.lhs==variable or self.rhs==variable
-        else:
-            return False
-
-    #def isfunction(self,variable):
-    #    while self.hasvariable(variable)==False and :
-    #        self.lhs.hasvariable(variable)
-    #        self.rhs.hasvariable(variable)
-    #    return True
-            
                 
     def simplify(self):
         left=(self.lhs).simplify()
@@ -416,12 +398,14 @@ class BinaryNode(Expression):
             return z
         elif T==NegNode:
             return z
+        elif T in [CosNode,SinNode,TanNode,LogNode]:
+            return z.simplify()
         else:
             left=z.lhs.simplify()
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
-            if (type(left)==Constant or type(left)==NegNode) and (type(right)==Constant or type(right)==NegNode):
-                a= Constant(eval("%s %s %s" % (left, op_symbol, right)))
+            if type(left)==type(right)==Constant:
+                a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
         
             elif z.associativity=='both':
@@ -438,6 +422,8 @@ class BinaryNode(Expression):
             elif z.associativity=='left':
                 if right==z.identity:
                     return left
+                elif T==SubNode and left==z.identity:
+                    return NegNode(right)
                 else:
                     return T(left,right)
             elif right==z.identity:
@@ -445,7 +431,13 @@ class BinaryNode(Expression):
             else:
                 return T(left,right)
             
-
+    def derivative(self,variable):
+        self=self.simplify()
+        T=type(self)
+        if type(self)==Constant or type(self)==variable or type(self)==NegNode:
+            return self.derivative(variable)
+        else:
+            return self.derivative_specific(variable)
         
 class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
@@ -516,7 +508,7 @@ class AddNode(BinaryNode):
         else:
             return left+right
 
-    def derivative(self,variable):
+    def derivative_specific(self,variable):
         L=self.lhs.simplify()
         R=self.rhs.simplify()
         left=L.derivative(variable)
@@ -555,7 +547,7 @@ class SubNode(BinaryNode):
         else:
             return left-right
 
-    def derivative(self,variable):
+    def derivative_specific(self,variable):
         L=self.lhs.simplify()
         R=self.rhs.simplify()
         left=L.derivative(variable)
@@ -597,10 +589,13 @@ class MulNode(BinaryNode):
         # x*x**a=x**(1+a)
         elif type(right)==PowNode and left==right.lhs:
             return (left**(Constant(1)+right.rhs)).simplify()
+        #a(b+x)=a*b+a*x and a(b-x)=a*b-a*x
+        elif right.precedence==1:
+            return type(right)(left*right.lhs,left*right.rhs).simplify()
         else:
             return left*right
 
-    def derivative(self,variable):
+    def derivative_specific(self,variable):
         L=self.lhs.simplify()
         R=self.rhs.simplify()
         left=L.derivative(variable)
@@ -644,7 +639,7 @@ class DivNode(BinaryNode):
         else:
             return left/right
 
-    def derivative(self,variable):
+    def derivative_specific(self,variable):
         L=self.lhs.simplify()
         R=self.rhs.simplify()
         left=L.derivative(variable)
@@ -675,13 +670,13 @@ class PowNode(BinaryNode):
         else:
             return left**right
 
-    def derivative(self,variable):
+    def derivative_specific(self,variable):
         L=self.lhs.simplify()
         R=self.rhs.simplify()
         left=L.derivative(variable)
         right=R.derivative(variable)
-        if L.hasvariable(variable) and not R.hasvariable(variable):
-            return (R*L**(R-Constant(1))*left).simplify()
+        if str(variable) in str(L) and not str(variable) in str(R):
+            return ((R*L**(R-Constant(1)))*left).simplify()
 
 class NegNode(UnaryNode):
     """Represents the negation operator"""
@@ -694,13 +689,12 @@ class NegNode(UnaryNode):
             return Constant(a)
         else:
             return self
+        #return (Constant(-1)*self.operand).simplify()
 
     def derivative(self,variable):
         O=self.operand.simplify()
         return (Constant(-1)*O.derivative(variable)).simplify()
     
-    def hasvariable(self,variable):
-        return self.operand.hasvariable(variable)
 
 class CosNode(UnaryNode): #we have to write cos(x), only works with bracket
     """ Represents the function Cosinus"""
@@ -708,11 +702,18 @@ class CosNode(UnaryNode): #we have to write cos(x), only works with bracket
         super(CosNode, self).__init__(operand, 'cos', 3)
 
     def simplify(self):
-        if type(self.operand)==Constant:
-            return Constant(math.cos(self.operand.value))
-        else:
-            return self
+        #if type(self.operand)==Constant:
+        #    return Constant(math.cos(self.operand.value))
+        #elif isnumber(self.operand):
+        #    return Constant(math.cos(self.operand))
+        #else:
+        #    return self
+        return self
 
+    def derivative(self,variable):
+        O=self.operand.simplify()
+        op=O.derivative(variable)
+        return (NegNode(SinNode(O))*op).simplify()
    
 class SinNode(UnaryNode): #we have to write sin(x), only works with bracket
     """ Represents the function Sinus"""
@@ -720,21 +721,28 @@ class SinNode(UnaryNode): #we have to write sin(x), only works with bracket
         super(SinNode, self).__init__(operand, 'sin', 3)
 
     def simplify(self):
-        if type(self.operand)==Constant:
-            return Constant(math.sin(self.operand.value))
-        else:
-            return self
-
+        #if type(self.operand)==Constant:
+        #    return Constant(math.sin(self.operand.value))
+        #elif isnumber(self.operand):
+        #    return Constant(math.sin(self.operand))
+        #else:
+        #    return self
+        return self
+    
+    def derivative(self,variable):
+        O=self.operand.simplify()
+        op=O.derivative(variable)
+        return (CosNode(O)*op).simplify()
+    
 class TanNode(UnaryNode): #we have to write tan(x), only works with bracket
     """ Represents the function Tangens"""
     def __init__(self,operand):
+        if isnumber(self.operand):
+            self.operand=Constant(self.operand)
         super(TanNode, self).__init__(operand, 'tan', 3)
 
     def simplify(self):
-        if type(self.operand)==Constant:
-            return Constant(math.tan(self.operand.value))
-        else:
-            return self
+        return self
 
 
 class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
@@ -746,6 +754,8 @@ class LogNode(UnaryNode): #we have to writelog(x), only works with bracket
     def simplify(self):
         if type(self.operand)==Constant:
             return Constant(math.log(self.operand.value))
+        elif isnumber(self.operand):
+            return Constant(math.tan(self.operand))
         else:
             return self
             
