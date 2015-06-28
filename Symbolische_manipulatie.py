@@ -404,7 +404,8 @@ class BinaryNode(Expression):
             right=z.rhs
             op_symbol=z.op_symbol
             if (type(left)==Constant or type(left)==NegNode) and (type(right)==Constant or type(right)==NegNode):
-                a= Constant(eval("%s %s %s" % (left, op_symbol, right)))
+                a= eval("%s %s %s" % (left, op_symbol, right))
+                print(type(a))
                 return a
         
             elif z.associativity=='both':
