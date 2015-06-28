@@ -417,12 +417,17 @@ class BinaryNode(Expression):
                     return right
                 elif right==z.identity:
                     return left
-                # ex: a*x*x=a*(x*x)
+                # ex: a+x+x=a+(x+x)
                 elif type(left)==T and type(left.rhs)==type(right):
                     return T(left.lhs,T(left.rhs,right)).simplify()
-                # ex: a*(b*x)=(a*b)*x
-                elif type(right)==T and type(left)==type(right.lhs):
-                    return T(T(left,right.lhs),right.rhs).simplify()
+                # a-b+c=(a+c)-b
+                elif left.precedence==z.precedence and type(left.lhs)==type(right):
+                    K=type(left)
+                    return T(T(left.lhs,right),left.rhs).simplify()
+                # ex: a+(b-x)=(a+b)-x
+                elif right.precedence==z.precedence and type(left)==type(right.lhs):
+                    K=type(right)
+                    return K(T(left,right.lhs),right.rhs).simplify()
                 else:
                     return T(left,right)
             elif z.associativity=='left':
@@ -430,7 +435,13 @@ class BinaryNode(Expression):
                     return left
                 elif T==SubNode and left==z.identity:
                     return NegNode(right)
-                elif type(left)==T and type(left.lhs)==type(right):
+                # ex: a+b-c=a+(b-c)
+                elif left.precedence==z.precedence and type(left.rhs)==type(right):
+                    K=type(left)
+                    return K(left.lhs,T(left.rhs,right)).simplify()
+                # ex: a-b-c=(a-c)-b
+                elif left.precedence==z.precedence and type(left.lhs)==type(right):
+                    K=type(left)
                     return T(T(left.lhs,right),left.rhs).simplify()
                 else:
                     return T(left,right)
@@ -677,6 +688,7 @@ class PowNode(BinaryNode):
         right=R.derivative(variable)
         if str(variable) in str(L) and not str(variable) in str(R):
             return ((R*L**(R-Constant(1)))*left).simplify()
+        #elif
 
 class NegNode(UnaryNode):
     """Represents the negation operator"""
