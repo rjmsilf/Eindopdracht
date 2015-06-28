@@ -417,10 +417,12 @@ class BinaryNode(Expression):
                     return right
                 elif right==z.identity:
                     return left
-                elif type(left)==T and left.associativity =='both' and type(left.rhs)==type(right):
+                # ex: a*x*x=a*(x*x)
+                elif type(left)==T and type(left.rhs)==type(right):
                     return T(left.lhs,T(left.rhs,right)).simplify()
-                elif type(right)==T and right.associativity =='both' and type(left)==type(right.lhs):
-                    return (T(T(left,right.lhs),right.rhs)).simplify()
+                # ex: a*(b*x)=(a*b)*x
+                elif type(right)==T and type(left)==type(right.lhs):
+                    return T(T(left,right.lhs),right.rhs).simplify()
                 else:
                     return T(left,right)
             elif z.associativity=='left':
@@ -428,6 +430,8 @@ class BinaryNode(Expression):
                     return left
                 elif T==SubNode and left==z.identity:
                     return NegNode(right)
+                elif type(left)==T and type(left.lhs)==type(right):
+                    return T(T(left.lhs,right),left.rhs).simplify()
                 else:
                     return T(left,right)
             elif right==z.identity:
@@ -614,13 +618,13 @@ class DivNode(BinaryNode):
         right=self.rhs
      
         # a/b/c=a/(b*c)
-        if type(left)==DivNode:
-            return (left.lhs/(left.rhs*right)).simplify()
+        #if type(left)==DivNode:
+        #    return (left.lhs/(left.rhs*right)).simplify()
         # a/(b/c)=a*(c/b)
-        elif type(right)==DivNode:
-            return (left*(right.rhs/right.lhs)).simplify()
+        #elif type(right)==DivNode:
+        #    return (left*(right.rhs/right.lhs)).simplify()
         # 0/x=0
-        elif left==Constant(0):
+        if left==Constant(0):
             return Constant(0)
         # x/x=1
         elif left==right:
@@ -660,6 +664,9 @@ class PowNode(BinaryNode):
         # (x**a)**b=x**(a*b)
         elif type(left)==PowNode:
             return (left.lhs**(left.rhs*right)).simplify()
+        # (a*x)**b=a**b*x**b
+        elif type(left)==MulNode:
+            return (left.lhs**right*left.rhs**right).simplify()
         else:
             return left**right
 
@@ -695,12 +702,6 @@ class CosNode(UnaryNode): #we have to write cos(x), only works with bracket
         super(CosNode, self).__init__(operand, 'cos', 3)
 
     def simplify(self):
-        #if type(self.operand)==Constant:
-        #    return Constant(math.cos(self.operand.value))
-        #elif isnumber(self.operand):
-        #    return Constant(math.cos(self.operand))
-        #else:
-        #    return self
         return self
 
     def derivative(self,variable):
@@ -714,12 +715,6 @@ class SinNode(UnaryNode): #we have to write sin(x), only works with bracket
         super(SinNode, self).__init__(operand, 'sin', 3)
 
     def simplify(self):
-        #if type(self.operand)==Constant:
-        #    return Constant(math.sin(self.operand.value))
-        #elif isnumber(self.operand):
-        #    return Constant(math.sin(self.operand))
-        #else:
-        #    return self
         return self
     
     def derivative(self,variable):
@@ -745,12 +740,7 @@ class LogNode(UnaryNode): #we have to write log(x), only works with bracket
 
 
     def simplify(self):
-        if type(self.operand)==Constant:
-            return Constant(math.log(self.operand.value))
-        elif isnumber(self.operand):
-            return Constant(math.tan(self.operand))
-        else:
-            return self
+        return self
             
 class FunctionNode(UnaryNode): #we can use a function in a string written with two letters or one letter and one constant, e.g. f(x) or f(2) 
     """Represents an arbitrary function"""
