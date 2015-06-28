@@ -688,7 +688,8 @@ class PowNode(BinaryNode):
         right=R.derivative(variable)
         if str(variable) in str(L) and not str(variable) in str(R):
             return ((R*L**(R-Constant(1)))*left).simplify()
-        #elif
+        elif str(variable) in str(R) and not str(variable) in str(L):
+            return (L**R*LogNode(L)*right).simplify()
 
 class NegNode(UnaryNode):
     """Represents the negation operator"""
