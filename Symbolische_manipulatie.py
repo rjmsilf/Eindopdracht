@@ -403,7 +403,7 @@ class BinaryNode(Expression):
         elif T==NegNode:
             return z
         elif T in [CosNode,SinNode,TanNode,LogNode]:
-            return z.simplify()
+            return z
         else:
             left=z.lhs.simplify()
             right=z.rhs.simplify()
@@ -503,10 +503,6 @@ class AddNode(BinaryNode):
         # Constants should be right of a non Constant/NedNode
         if type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
             return (right+left).simplify()
-        #(x+a)+b
-        elif type(left)==AddNode and type(left.rhs)==type(right)==Constant:
-            a=left.rhs.value+right.value
-            return (left.lhs+Constant(a)).simplify()
         # x+x=2*x
         elif left==right:
             return (Constant(2)*right)
@@ -532,18 +528,14 @@ class AddNode(BinaryNode):
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
     def __init__(self, lhs, rhs):
-        super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left', Constant(0))
+        super(SubNode, self).__init__(lhs, rhs, '-', 1, 'left', )
 
     def simplify_specific(self):
         left=self.lhs
         right=self.rhs
         
-        # Simplify when childs are Constants
-        if type(left)==type(right)==Constant:
-            a=left.value-right.value
-            return Constant(a)
         #(x-a)-b=x-(a+b)
-        elif type(left)==SubNode and type(left.rhs)==type(right)==Constant:
+        if type(left)==SubNode and type(left.rhs)==type(right)==Constant:
             a=left.rhs.value+right.value
             return (left.lhs-Constant(a)).simplify()
         # x-x=0
@@ -577,12 +569,8 @@ class MulNode(BinaryNode):
         left=self.lhs
         right=self.rhs
 
-        # Simplify when childs are Constants
-        if type(left)==type(right)==Constant:
-            a=left.value*right.value
-            return Constant(a)
         # x*a=a*x
-        elif type(right)==Constant and type(left)!=Constant:
+        if type(right)==Constant and type(left)!=Constant:
             return (right*left).simplify()
         #a*(b*x)=(a*b)*x
         elif type(right)==MulNode and type(left)==type(right.lhs)==Constant:
@@ -625,12 +613,8 @@ class DivNode(BinaryNode):
         left=self.lhs
         right=self.rhs
      
-        # Simplify when childs are Constants
-        if type(left)==type(right)==Constant:
-            a=left.value/right.value
-            return Constant(a)
         # a/b/c=a/(b*c)
-        elif type(left)==DivNode:
+        if type(left)==DivNode:
             return (left.lhs/(left.rhs*right)).simplify()
         # a/(b/c)=a*(c/b)
         elif type(right)==DivNode:
@@ -670,13 +654,8 @@ class PowNode(BinaryNode):
         left=self.lhs
         right=self.rhs
 
-
-        # Simplify when childs are Constants
-        if type(left)==type(right)==Constant:
-            a=left.value**right.value
-            return Constant(a)
         # x**0=1
-        elif right==Constant(0):
+        if right==Constant(0):
             return Constant(1)
         # (x**a)**b=x**(a*b)
         elif type(left)==PowNode:
