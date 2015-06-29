@@ -453,8 +453,10 @@ class BinaryNode(Expression):
     def derivative(self,variable):
         self=self.simplify()
         T=type(self)
-        if T in [AddNode,SubNode,MulNode,DivNode,PowNode]:
+        if T in [MulNode,DivNode,PowNode]:
             return self.derivative_specific(variable).simplify()
+        elif T in [AddNode,SubNode]:
+            return T(self.lhs.derivative(variable),self.rhs.derivative(variable)).simplify()
         else:
             return self.derivative(variable).simplify()
         
@@ -533,12 +535,6 @@ class AddNode(BinaryNode):
         else:
             return left+right
 
-    def derivative_specific(self,variable):
-        L=self.lhs.simplify()
-        R=self.rhs.simplify()
-        left=L.derivative(variable)
-        right=R.derivative(variable)
-        return (left+right).simplify()
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
@@ -576,12 +572,6 @@ class SubNode(BinaryNode):
         else:
             return left-right
 
-    def derivative_specific(self,variable):
-        L=self.lhs.simplify()
-        R=self.rhs.simplify()
-        left=L.derivative(variable)
-        right=R.derivative(variable)
-        return (left-right).simplify()
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
