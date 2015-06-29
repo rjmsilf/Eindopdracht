@@ -517,8 +517,17 @@ class AddNode(BinaryNode):
         left=self.lhs
         right=self.rhs
 
+        #rules for NegNode
+        #a+-b=a-b
+        if type(right)==NegNode:
+            return (left-right.operand).simplify()
+        #ex: a+-b*c=a-b*c and a+-b/c=a-b/c
+        elif type(right) in [MulNode,DivNode] and type(right.lhs)==NegNode:
+            K=type(right)
+            return (left-K(right.lhs.operand,right.rhs)).simplify()
+    
         # Constants should be right of a non Constant/NedNode
-        if type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
+        elif type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
             return (right+left).simplify()
         # x+x=2*x
         elif left==right:
@@ -722,7 +731,6 @@ class NegNode(UnaryNode):
             return NegNode(self.operand.simplify())
         else:
             return self
-        #return (Constant(-1)*self.operand).simplify()
 
     def derivative(self,variable):
         O=self.operand.simplify()
