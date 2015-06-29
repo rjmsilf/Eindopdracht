@@ -22,7 +22,7 @@ def tokenize(string):
     tokens = tokenstring.split()
 
     #special casing for **:
-    #ADDED: special casting for '-' as a negative ###(TODO: how to evaluate -Constant and -Var etc)###
+    
     ans = []
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
@@ -247,7 +247,7 @@ class Expression():
 
 class Constant(Expression):
     """Represents a constant value"""
-    def __init__(self, value, precedence = 6):
+    def __init__(self, value, precedence = 6, associativity='both', identity=None):
         self.value = value
         if int(self.value) < 0 : 
             self.precedence = 3
@@ -282,7 +282,7 @@ class Constant(Expression):
         
 class Variable(Expression):
     """Represents a variable"""
-    def __init__(self, value, precedence=6):
+    def __init__(self, value, precedence=6, associativity='both', identity = None):
         self.value = value
         self.precedence=precedence
         
@@ -408,6 +408,7 @@ class BinaryNode(Expression):
             left=z.lhs.simplify()
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
+
             if type(left)==type(right)==Constant:
                 a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
@@ -814,7 +815,7 @@ def graph(formula, x_range):
         plt.title('$Graph\ of\ \ $' + function)
         plt.show()  
         pdf.savefig()        
-        
+    
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
 
