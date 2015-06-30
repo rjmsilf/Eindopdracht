@@ -408,7 +408,7 @@ class BinaryNode(Expression):
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
 
-            if type(left)==type(right)==Constant:
+            if isinstance(left, (Constant, NegNode)) and isinstance(right,(Constant,NegNode)):
                 a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
         
@@ -646,10 +646,10 @@ class DivNode(BinaryNode):
         # rules for NegNode
         # (-a)/(-b)=a/b
         if type(left)==type(right)==NegNode:
-            return (left.operand*right.operand).simplify()
+            return (left.operand/right.operand).simplify()
         # a/(-b)=-(a/b)
         elif type(right)==NegNode:
-            return (-(left*right.operand)).simplify() 
+            return (-(left/right.operand)).simplify() 
         
         # 0/x=0
         elif left==Constant(0):
