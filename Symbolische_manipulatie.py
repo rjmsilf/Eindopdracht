@@ -180,7 +180,7 @@ class Expression():
                     stack.pop()
                     x=output.pop()
                     f=output.pop()
-                    output.append(FunctionNode(x,f))
+                    output.append(FunctionNode(f,x))
                 elif len(stack)==1:
                     stack.pop()
                 #check if the brackets are from a cos(x)
@@ -472,7 +472,7 @@ class UnaryNode(Expression):
         if self.op_symbol in ['sin', 'cos', 'tan', 'log']:
             return "%s(%s)" % (self.op_symbol, self.operand)
         elif type(self)==FunctionNode:
-            return "%s(%s)" % (self.operand, self.op_symbol)
+            return "%s(%s)" % (self.op_symbol,self.operand)
         else:
             return self.op_symbol+str(self.operand)
         
@@ -496,11 +496,13 @@ class UnaryNode(Expression):
             else:
                 return Constant(eval('math.'+str(self.op_symbol)+'('+str(x)+')'))
         # check whether x is a variable
+        
         if isinstance(x, Variable):
-            # if so, return it as a variable
-            a = Variable("%s%s" % (self.op_symbol, x))
+            #if so, return it as a variable
+
+            a=Variable("%s%s" (self.op_symbol, x))
             return a
-        # if not, return it as a constant
+        #if not, return it as a constant
         else:
             a = Constant(eval("%s%s" % (self.op_symbol, x)))
             return a
@@ -801,6 +803,8 @@ class FunctionNode(UnaryNode): #we can use a function in a string written with t
     """Represents an arbitrary function"""
     def __init__(self,naam, operand):
         super(FunctionNode,self).__init__(operand, naam, 3)
+        
+        
 
 
 
