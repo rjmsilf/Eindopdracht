@@ -149,7 +149,6 @@ class Expression():
                         output.append(stack.pop())
                     # push the new operator onto the stack
                     stack.append(token)
-                    
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
@@ -409,7 +408,7 @@ class BinaryNode(Expression):
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
 
-            if type(left)==type(right)==Constant:
+            if isinstance(left, (Constant, NegNode)) and isinstance(right,(Constant,NegNode)):
                 a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
         
@@ -454,8 +453,10 @@ class BinaryNode(Expression):
     def derivative(self,variable):
         self=self.simplify()
         T=type(self)
-        if T in [AddNode,SubNode,MulNode,DivNode,PowNode]:
+        if T in [MulNode,DivNode,PowNode]:
             return self.derivative_specific(variable).simplify()
+        elif T in [AddNode,SubNode]:
+            return T(self.lhs.derivative(variable),self.rhs.derivative(variable)).simplify()
         else:
             return self.derivative(variable).simplify()
         
@@ -518,8 +519,17 @@ class AddNode(BinaryNode):
         left=self.lhs
         right=self.rhs
 
+        #rules for NegNode
+        #a+-b=a-b
+        if type(right)==NegNode:
+            return (left-right.operand).simplify()
+        #ex: a+-b*c=a-b*c and a+-b/c=a-b/c
+        elif type(right) in [MulNode,DivNode] and type(right.lhs)==NegNode:
+            K=type(right)
+            return (left-K(right.lhs.operand,right.rhs)).simplify()
+    
         # Constants should be right of a non Constant/NedNode
-        if type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
+        elif type(left)==Constant and type(right)!=Constant and type(right)!=NegNode:
             return (right+left).simplify()
         # x+x=2*x
         elif left==right:
@@ -536,12 +546,6 @@ class AddNode(BinaryNode):
         else:
             return left+right
 
-    def derivative_specific(self,variable):
-        L=self.lhs.simplify()
-        R=self.rhs.simplify()
-        left=L.derivative(variable)
-        right=R.derivative(variable)
-        return (left+right).simplify()
 
 class SubNode(BinaryNode):
     """Represents the substraction operator"""
@@ -579,12 +583,6 @@ class SubNode(BinaryNode):
         else:
             return left-right
 
-    def derivative_specific(self,variable):
-        L=self.lhs.simplify()
-        R=self.rhs.simplify()
-        left=L.derivative(variable)
-        right=R.derivative(variable)
-        return (left-right).simplify()
         
 class MulNode(BinaryNode):
     """Represents the multiplication operator"""
@@ -650,10 +648,10 @@ class DivNode(BinaryNode):
         # rules for NegNode
         # (-a)/(-b)=a/b
         if type(left)==type(right)==NegNode:
-            return (left.operand*right.operand).simplify()
+            return (left.operand/right.operand).simplify()
         # a/(-b)=-(a/b)
         elif type(right)==NegNode:
-            return (-(left*right.operand)).simplify() 
+            return (-(left/right.operand)).simplify() 
         
         # 0/x=0
         elif left==Constant(0):
@@ -735,7 +733,6 @@ class NegNode(UnaryNode):
             return NegNode(self.operand.simplify())
         else:
             return self
-        #return (Constant(-1)*self.operand).simplify()
 
     def derivative(self,variable):
         O=self.operand.simplify()
