@@ -160,26 +160,29 @@ class Expression():
                     output.append(stack.pop())
                 # push the new operator onto the stack
                 stack.append(token)
-                #print('is in token')
-                #print(stack)
-                #print(output)
+            
             elif token == '(':
-                # left parantheses go to the stack
+                if ord(tokens[index-1])>=97 and ord(tokens[index-1])<= 122:
+                    stack.append('?')
+                else:
+                    # left parantheses go to the stack
                     stack.append(token)
-                    #print('is ( ')
-                    #print(stack)
-                    #print(output)
             elif token == ')':
                 # right paranthesis: pop everything upto the last left paranthesis to the output
-                while not stack[-1] == '(':
+                while not stack[-1] in ['(', '?'] :
                     output.append(stack.pop())
                 # pop the left paranthesis from the stack (but not to the output)
                 # checken if the last two elements in output are variables/variables, then we have a function f(x)
-                if stack[-1]=='(' and type(output[-2])==Variable and (type(output[-1])==Variable or type(output[-1])==Constant):
+                if stack[-1]=='?':
                     stack.pop()
                     x=output.pop()
                     f=output.pop()
                     output.append(FunctionNode(f,x))
+                #if stack[-1]=='(' and type(output[-2])==Variable and (type(output[-1])==Variable or type(output[-1])==Constant):
+                #    stack.pop()
+                #    x=output.pop()
+                #    f=output.pop()
+                #    output.append(FunctionNode(f,x))
                 elif len(stack)==1:
                     stack.pop()
                 #check if the brackets are from a cos(x)
@@ -208,9 +211,6 @@ class Expression():
                     stack.pop()
                 else:
                     stack.pop()
-                #print('is )')
-                #print(stack)
-                #print(output)
             # TODO: do we need more kinds of tokens?
             #ADDED: if token is a small alphabetic letter --> make it an Variable and send it to output
             ####TODO: Do we want to leave some letters (a-e?) to auto make them Constants?
