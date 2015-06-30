@@ -149,7 +149,6 @@ class Expression():
                         output.append(stack.pop())
                     # push the new operator onto the stack
                     stack.append(token)
-                    
             elif token in oplist:
                 # pop operators from the stack to the output until the top is no longer an operator
                 while True:
