@@ -475,7 +475,10 @@ class UnaryNode(Expression):
         elif type(self)==FunctionNode:
             return "%s(%s)" % (self.op_symbol,self.operand)
         else:
-            return self.op_symbol+str(self.operand)
+            if type(self)==NegNode and self.operand==Constant(0):
+                return str(Constant(0))
+            else:
+                return self.op_symbol+str(self.operand)
         
     def __eq__(self, other):
         if type(self)==type(other):
@@ -609,7 +612,7 @@ class MulNode(BinaryNode):
             a=left.value*right.lhs.value
             return (Constant(a)*right.rhs).simplify()
         # 0*x=0
-        elif left==Constant(0):
+        elif left==Constant(0) or left==NegNode(Constant(0)):
             return Constant(0)
         # x*x=x**2
         elif left==right:
