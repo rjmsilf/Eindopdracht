@@ -464,7 +464,6 @@ class UnaryNode(Expression):
     """A node in the expression tree representing a unary operator."""
 
     def __init__(self, operand, op_symbol, precedence=0):
-
         self.operand = operand
         self.op_symbol = op_symbol
         self.precedence = precedence
@@ -504,7 +503,7 @@ class UnaryNode(Expression):
         if isinstance(x, Variable):
             #if so, return it as a variable
 
-            a=Variable("%s%s" (self.op_symbol, x))
+            a=Variable("%s%s" % (self.op_symbol, x))
             return a
         #if not, return it as a constant
         else:
@@ -727,8 +726,7 @@ class NegNode(UnaryNode):
     """Represents the negation operator"""
     def __init__(self, operand):
         super(NegNode, self).__init__(operand, '-', 3)
-        
-    
+
     def simplify(self):
         if type(self.operand)==NegNode:
             return self.operand.operand.simplify()
@@ -786,7 +784,6 @@ class LogNode(UnaryNode): #we have to write log(x), only works with bracket
     def __init__(self,operand):
         super(LogNode, self).__init__(operand, 'log', 3)     
 
-
     def simplify(self):
         if self.operand==Constant(math.e):
             return Constant(1)
@@ -804,9 +801,6 @@ class FunctionNode(UnaryNode): #we can use a function in a string written with t
     def __init__(self,naam, operand):
         super(FunctionNode,self).__init__(operand, naam, 3)
         
-        
-
-
 
 # with this function, you plot a polynomial. Call it with graph(function, range(-x, +x))
 def graph(formula, x_range):
@@ -824,5 +818,3 @@ def graph(formula, x_range):
     
 
 # TODO: add more subclasses of Expression to represent operators, variables, functions, etc.
-
-
