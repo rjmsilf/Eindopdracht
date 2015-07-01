@@ -408,7 +408,7 @@ class BinaryNode(Expression):
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
 
-            if isinstance(left, (Constant, NegNode)) and isinstance(right,(Constant,NegNode)):
+            if type(left) in [Constant,NegNode] and type(right) in [Constant,NegNode]:
                 a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
         
@@ -418,14 +418,14 @@ class BinaryNode(Expression):
                 elif right==z.identity:
                     return left
                 # ex: a+x+x=a+(x+x)
-                elif type(left)==T and type(left.rhs)==type(right):
+                elif type(left)==T and T(left.rhs,right).simplify() != T(left.rhs,right):
                     return T(left.lhs,T(left.rhs,right)).simplify()
                 # a-b+c=(a+c)-b
-                elif left.precedence==z.precedence and type(left.lhs)==type(right):
+                elif left.precedence==z.precedence and T(left.lhs,right).simplify() != T(left.lhs,right):
                     K=type(left)
-                    return T(T(left.lhs,right),left.rhs).simplify()
+                    return K(T(left.lhs,right),left.rhs).simplify()
                 # ex: a+(b-x)=(a+b)-x
-                elif right.precedence==z.precedence and type(left)==type(right.lhs):
+                elif right.precedence==z.precedence and T(left,right.lhs).simplify() != T(left,right.lhs):
                     K=type(right)
                     return K(T(left,right.lhs),right.rhs).simplify()
                 else:
@@ -435,14 +435,14 @@ class BinaryNode(Expression):
                     return left
                 elif T==SubNode and left==z.identity:
                     return NegNode(right)
-                # ex: a+b-c=a+(b-c)
-                elif left.precedence==z.precedence and type(left.rhs)==type(right):
+                # ex: a+b-c=a+(b-c) 
+                elif left.precedence==z.precedence and left.associativity=='both' and T(left.rhs,right).simplify() != T(left.rhs,right):
                     K=type(left)
                     return K(left.lhs,T(left.rhs,right)).simplify()
-                # ex: a-b-c=(a-c)-b
-                elif left.precedence==z.precedence and type(left.lhs)==type(right):
+                # ex: a-b-c=(a-c)-b or a+b-c=(a-c)+b
+                elif left.precedence==z.precedence and T(left.lhs,right).simplify() != T(left.lhs,right):
                     K=type(left)
-                    return T(T(left.lhs,right),left.rhs).simplify()
+                    return K(T(left.lhs,right),left.rhs).simplify()
                 else:
                     return T(left,right)
             elif right==z.identity:
@@ -725,11 +725,11 @@ class NegNode(UnaryNode):
     def __init__(self, operand):
         super(NegNode, self).__init__(operand, '-', 3)
         
+    
     def simplify(self):
-        
         if type(self.operand)==NegNode:
             return self.operand.operand.simplify()
-        elif type(self.operand) in [MulNode, DivNode]:
+        elif self.operand.simplify() != self.operand:
             return NegNode(self.operand.simplify())
         else:
             return self
