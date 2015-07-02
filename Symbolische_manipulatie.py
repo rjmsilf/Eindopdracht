@@ -407,8 +407,8 @@ class BinaryNode(Expression):
             left=z.lhs.simplify()
             right=z.rhs.simplify()
             op_symbol=z.op_symbol
-
-            if type(left) in [Constant,NegNode] and type(right) in [Constant,NegNode]:
+            
+            if (type(left)==Constant or (type(left)==NegNode and type(left.operand)==Constant)) and (type(right)==Constant or (type(right)==NegNode and type(right.operand)==Constant)):
                 a= Constant(eval("(%s) %s (%s)" % (left, op_symbol, right)))
                 return a
         
@@ -417,9 +417,10 @@ class BinaryNode(Expression):
                     return right
                 elif right==z.identity:
                     return left
-                # ex: a+x+x=a+(x+x)
-                elif type(left)==T and T(left.rhs,right).simplify() != T(left.rhs,right):
-                    return T(left.lhs,T(left.rhs,right)).simplify()
+                # ex: x+a+b=x+(b+a) and x-a+b=x+(b-a)
+                elif left.precedence==z.precedence and T(right,left.rhs).simplify() != T(right,left.rhs):
+                    K=type(left)
+                    return T(left.lhs,K(right, left.rhs)).simplify()
                 # a-b+c=(a+c)-b
                 elif left.precedence==z.precedence and T(left.lhs,right).simplify() != T(left.lhs,right):
                     K=type(left)
@@ -473,11 +474,15 @@ class UnaryNode(Expression):
             return "%s(%s)" % (self.op_symbol, self.operand)
         elif type(self)==FunctionNode:
             return "%s(%s)" % (self.op_symbol,self.operand)
-        else:
-            if type(self)==NegNode and self.operand==Constant(0):
+        elif type(self)==NegNode:
+            if self.operand==Constant(0):
                 return str(Constant(0))
-            else:
+            elif type(self.operand) in [Constant,Variable]:
                 return self.op_symbol+str(self.operand)
+            else:
+                return "%s(%s)" % (self.op_symbol, self.operand)   
+        else:
+            return self.op_symbol+str(self.operand)
         
     def __eq__(self, other):
         if type(self)==type(other):
@@ -732,6 +737,10 @@ class NegNode(UnaryNode):
             return self.operand.operand.simplify()
         elif self.operand.simplify() != self.operand:
             return NegNode(self.operand.simplify())
+        elif type(self.operand)==AddNode:
+            return (NegNode(self.operand.lhs)-self.operand.rhs).simplify()
+        elif type(self.operand)==SubNode:
+            return (NegNode(self.operand.lhs)+self.operand.rhs).simplify()
         else:
             return self
 
